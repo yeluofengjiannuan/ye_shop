@@ -1,0 +1,62 @@
+# DataSource Config
+spring:
+  main:
+    # 开启 Spring循环依赖自动解决机制
+    allow-circular-references: true
+  session:
+    timeout: 3600s #session 1小时过期
+  profiles:
+    active: dev  # 激活开发环境配置
+  application:
+    name: ye_shop
+  # 数据源公共配置（敏感信息在dev中)
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/ye_shop?serverTimezone=UTC&useUnicode=true&characterEncoding=utf8&allowPublicKeyRetrieval=true&useSSL=false&allowMultiQueries=true&rewriteBatchedStatements=true
+    username: ${spring.datasource.username:your_mysql_username_placeholder} # 敏感信息，dev配置中覆盖
+    password: ${spring.datasource.password:your_mysql_password_placeholder} # 敏感信息，dev配置中覆盖
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+
+  data:
+    redis:
+      host: 192.168.100.128
+      port: 6379
+      database: 0
+      password: ${spring.data.redis.password}
+mybatis-plus:
+  type-aliases-package: com.itxindeshang.pojo.entity   # 实体类包路径
+  global-config:
+    db-config:
+      update-strategy: NOT_NULL # 更新忽略null字段，解决你最初的坑
+      insert-strategy: NOT_NULL
+      where-strategy: NOT_EMPTY
+      logic-delete-field: deleted # 逻辑删除字段
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  configuration:
+    map-underscore-to-camel-case: true
+    default-enum-type-handler: com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler  # 开启枚举自动转换
+rocketmq:
+  name-server: 192.168.100.128:9876 # 你的服务器IP
+  producer:
+    group: my-producer-group
+    send-message-timeout: 10000
+  consumer:
+    group: my-consumer-group
+    message-model: BROADCASTING
+    pull-batch-size: 100
+
+jwt:
+   # JWT密钥（敏感信息，dev配置中覆盖）
+  admin-secret-key: ${jwt.admin-secret-key}
+  admin-ttl: 7200000  # 非敏感，过期时间（毫秒）
+  admin-token-name: Authorization  # 非敏感，前端令牌名称      旧数据(token)
+  user-secret-key: ${jwt.user-secret-key}
+  user-ttl: 7200000  #(毫秒)
+  user-token-name: Authorization
+  login-user-info-in-redis-ttl: 1 #Redis 存储用户登录信息过期时间(天)
+  login-refresh-token-ttl: 15 #Redis 存储刷新 token 过期时间(天)
+
+
