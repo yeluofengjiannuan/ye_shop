@@ -1,10 +1,9 @@
-package com.itxindeshang.controller.admit;
+package com.itxindeshang.controller.admin;
 
 import com.itxindeshang.common.result.Result;
 import com.itxindeshang.pojo.dto.CategoryDTO;
 import com.itxindeshang.service.CategoryService;
 import jakarta.annotation.Resource;
-import jakarta.websocket.server.PathParam;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
