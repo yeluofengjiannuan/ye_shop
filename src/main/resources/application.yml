@@ -36,7 +36,7 @@ mybatis-plus:
       logic-delete-value: 1
       logic-not-delete-value: 0
   configuration:
-    map-underscore-to-camel-case: true
+    map-underscore-to-camel-case: true #驼峰
     default-enum-type-handler: com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler  # 开启枚举自动转换
 rocketmq:
   name-server: 192.168.100.128:9876 # 你的服务器IP
@@ -59,4 +59,11 @@ jwt:
   login-user-info-in-redis-ttl: 1 #Redis 存储用户登录信息过期时间(天)
   login-refresh-token-ttl: 15 #Redis 存储刷新 token 过期时间(天)
 
-
+aliyun:
+  oss:
+    endpoint: ${aliyun.oss.endpoint}
+    access-key-id: ${aliyun.oss.access-key-id}
+    access-key-secret: ${aliyun.oss.access-key-secret}
+    bucket-name: ${aliyun.oss.bucket-name}
+shiro:
+  enabled: false

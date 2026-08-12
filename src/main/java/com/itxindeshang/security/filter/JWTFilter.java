@@ -2,6 +2,7 @@ package com.itxindeshang.security.filter;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.itxindeshang.common.constant.JWTTokenClaimsConstant;
+import com.itxindeshang.common.constant.MessageConstant;
 import com.itxindeshang.context.BaseContext;
 import com.itxindeshang.pojo.entity.SysUser;
 import com.itxindeshang.properties.JWTProperties;
@@ -111,8 +112,8 @@ public class JWTFilter extends AuthenticatingFilter {
             // 尝试解析 Token
             // 1. 从请求头提取 Token
             String tokenStr = getRequestToken(request);
-            if (tokenStr == null) {
-                throw new UnauthenticatedException("MessageConstant.NO_ACCESS_TOKEN");
+            if (tokenStr == null ||tokenStr.isBlank()) {
+                throw new UnauthenticatedException(MessageConstant.NO_ACCESS_TOKEN);
             }
             // 2. 解析 JWT（验证签名、过期时间等）
             Claims claims = JWTUtils.parseJWT(jwtProperties.getUserSecretKey(), tokenStr);
@@ -133,7 +134,7 @@ public class JWTFilter extends AuthenticatingFilter {
 
             return true; // 认证通过，放行
         } catch (Exception e) {
-//            handlerExceptionResolver.resolveException(request, response, null, e);
+            handlerExceptionResolver.resolveException(request, response, null, e);
             return false;
         }
     }

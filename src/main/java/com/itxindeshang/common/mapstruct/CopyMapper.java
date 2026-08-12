@@ -1,6 +1,8 @@
 package com.itxindeshang.common.mapstruct;
 
 import com.itxindeshang.pojo.UserInfo;
+import com.itxindeshang.pojo.dto.CategoryDTO;
+import com.itxindeshang.pojo.entity.Category;
 import com.itxindeshang.pojo.entity.SysUser;
 import org.mapstruct.Mapper;
 import org.mapstruct.ReportingPolicy;
@@ -11,4 +13,6 @@ import org.mapstruct.ReportingPolicy;
 public interface CopyMapper {
 
     UserInfo sysUserToUserInfo(SysUser sysUser);
+
+    Category categoryDTOToCategroy(CategoryDTO categoryDTO);
 }

@@ -109,7 +109,7 @@ public class LoginServiceImpl extends ServiceImpl<UserMapper, SysUser> implement
         //mp 插入
         boolean isSuccess = save(userNew);
         if (!isSuccess) {
-            return Result.error("MessageConstant.SQL_MESSAGE_SAVE_ERROR");
+            return Result.error(MessageConstant.SQL_MESSAGE_SAVE_ERROR);
         }
         sysUserMapper.insertSysUserConnectSysRole(userNew.getId(), UserRoleEnum.ROLE_BUYER.getId());
         return Result.success();

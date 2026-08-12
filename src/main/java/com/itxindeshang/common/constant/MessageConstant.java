@@ -8,4 +8,11 @@ public class MessageConstant {
     public static final String USER_NOT_LOGIN = "用户登录异常,请重新登录";
     public static final String ACCOUNT_LOCKED = "账号被锁定";
     public static final String TOKEN_INVALID="JWT 令牌解析失败(accessToken签名错误,篡改)";
+    public static final String SQL_MESSAGE_SAVE_ERROR = "数据保存失败，请稍后重试";
+    public static final String SQL_MESSAGE_DELETE_ERROR = "数据删除失败，不得删除带子节点的分类，请重试";
+    public static final String NO_ACCESS_TOKEN="用户未登录";
+    public static final String TOKEN_EXPIRED="JWT 令牌解析失败(accessToken过期)";
+    public static final String PERMISSION_DENIED="权限不足";
+    public static final String SYSTEM_ERROR="服务器异常";
+    public static final String SQL_MESSAGE_UPDATE_PARENTID_ERROR ="数据更新失败，不得修改父类ID";
 }

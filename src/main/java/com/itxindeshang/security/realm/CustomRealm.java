@@ -1,5 +1,6 @@
 package com.itxindeshang.security.realm;
 
+import com.itxindeshang.common.constant.JWTTokenClaimsConstant;
 import com.itxindeshang.common.constant.MessageConstant;
 import com.itxindeshang.common.exception.InvalidCredentialsException;
 import com.itxindeshang.common.mapstruct.CopyMapper;
@@ -77,7 +78,7 @@ public class CustomRealm extends AuthorizingRealm {
         Claims claims = jwtToken.getClaims(); // 直接获取 Filter 解析好的 Claims
         // 验证 userId 是否一致（双重校验）
         //TODO 此处可以优化为缓存,记得换常量
-        String jwtUserId = claims.get("UserId").toString();
+        String jwtUserId = claims.get(JWTTokenClaimsConstant.SYS_USER_ID).toString();
         if (!userId.equals(jwtUserId)) {
             log.error("Token篡改：传入userId={}，JWT解析userId={}", userId, jwtUserId);
               throw new InvalidCredentialsException(MessageConstant.TOKEN_INVALID);
@@ -92,6 +93,7 @@ public class CustomRealm extends AuthorizingRealm {
 
             }
             UserInfo userInfo = copyMapper.sysUserToUserInfo(user);
+            //TODO:这里就是没有检验导致出问题
             loginServiceImpl.setUserInfoToRedis(user, userInfo);
             user.setUserInfo(userInfo);
             return new SimpleAuthenticationInfo(user, token, this.getName());
