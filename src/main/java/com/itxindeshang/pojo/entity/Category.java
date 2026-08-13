@@ -16,9 +16,6 @@ import java.util.List;
  * 商品分类实体类
  * 对应数据库表：category
  * 支持一级/二级分类
- *
- * @author 自动生成
- * @date 2025-12-27
  */
 @Data
 @TableName("category")
