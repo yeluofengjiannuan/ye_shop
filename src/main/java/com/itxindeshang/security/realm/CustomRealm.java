@@ -90,7 +90,6 @@ public class CustomRealm extends AuthorizingRealm {
             SysUser user = loginServiceImpl.getSysUserByUserIdWithRolesAndPermissions(Long.valueOf(userId));
             if (Objects.isNull(user)){
                 throw new UnknownAccountException(MessageConstant.USER_NOT_LOGIN);
-
             }
             UserInfo userInfo = copyMapper.sysUserToUserInfo(user);
             //TODO:这里就是没有检验导致出问题
@@ -98,6 +97,7 @@ public class CustomRealm extends AuthorizingRealm {
             user.setUserInfo(userInfo);
             return new SimpleAuthenticationInfo(user, token, this.getName());
         }
+        //TODO:为什么查到能出现isNotEnable
         if (!userMap.get(SysUser.Fields.isEnable).equals(CommonStatus.ACTIVE.getNumber())) {
             throw new DisabledAccountException(MessageConstant.ACCOUNT_LOCKED);
 
@@ -118,7 +118,7 @@ public class CustomRealm extends AuthorizingRealm {
                 .sysPermissionList(sysPermissionList)
                 .userInfo(userInfo)
                 .build();
-
+        //TODO：检验是否有问题
         return new SimpleAuthenticationInfo(user, tokenChecked, this.getName());
     }
 }
