@@ -1,5 +1,59 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
-<mapper namespace= "com.itxindeshang.mapper.ProductMapperMapper">
+<mapper namespace= "com.itxindeshang.mapper.ProductMapper">
+
+    <select id="getCategoryProductList" resultType="com.itxindeshang.pojo.vo.ProductVO">
+        SELECT
+        id,
+        name,
+        cover_image as image,
+        price,
+        description,
+        stock,
+        category_id,
+        create_time,
+        update_time
+        FROM product
+        WHERE category_id = #{categoryId}
+
+        <if test="sortValue != null and productId != null">
+            AND (
+            <choose>
+                <when test="isAsc == true">
+                    ${sortField} &gt; #{sortValue}
+                </when>
+                <otherwise>
+                    ${sortField} &lt; #{sortValue}
+                </otherwise>
+            </choose>
+            OR
+            (
+            ${sortField} = #{sortValue}
+            AND
+            <choose>
+                <when test="isAsc == true">
+                    id &gt; #{productId}
+                </when>
+                <otherwise>
+                    id &lt; #{productId}
+                </otherwise>
+            </choose>
+            )
+            )
+        </if>
+
+        ORDER BY ${sortField}
+        <choose>
+            <when test="isAsc == true">ASC</when>
+            <otherwise>DESC</otherwise>
+        </choose>,
+        id
+        <choose>
+            <when test="isAsc == true">ASC</when>
+            <otherwise>DESC</otherwise>
+        </choose>
+
+        LIMIT #{querySize}
+    </select>
 </mapper>
