@@ -37,6 +37,7 @@ mybatis-plus:
       logic-not-delete-value: 0
   configuration:
     map-underscore-to-camel-case: true #驼峰
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl #日志，TODO：后续可能需要关闭
     default-enum-type-handler: com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler  # 开启枚举自动转换
 rocketmq:
   name-server: 192.168.100.128:9876 # 你的服务器IP
