@@ -17,6 +17,7 @@ import com.itxindeshang.pojo.vo.ProductVO;
 import com.itxindeshang.service.CategoryService;
 import com.itxindeshang.service.ProductService;
 import jakarta.annotation.Resource;
+import org.checkerframework.checker.units.qual.C;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
@@ -63,7 +64,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
      * @return
      */
     @Override
-    public CursorCommonResult getCategoryProductList(CursorCommonEntity cursorCommonEntity, Long categoryId) {
+    public Result<CursorCommonResult> getCategoryProductList(CursorCommonEntity cursorCommonEntity, Long categoryId) {
         //TODO: 确保查询categoryId是二级分类
         //在值相同时确保不重复
         Long sortId = cursorCommonEntity.getSortId();
@@ -81,13 +82,14 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         return getCursorCommonResult(queryList,querySize, productSortTypeEnum, sortType);
     }
 
-    private CursorCommonResult getCursorCommonResult(List<ProductVO> queryList, Integer querySize, ProductSortTypeEnum productSortTypeEnum, String sortType) {
+    private Result<CursorCommonResult> getCursorCommonResult(List<ProductVO> queryList, Integer querySize, ProductSortTypeEnum productSortTypeEnum, String sortType) {
         boolean isEnd = false;
         if (CollectionUtils.isEmpty(queryList)) {
-            return CursorCommonResult.builder()
+            CursorCommonResult result = CursorCommonResult.builder()
                     .isEnd(true)
                     .list(Collections.emptyList())
                     .build();
+            return Result.success(result);
         }
         if (querySize > queryList.size()) {
             isEnd = true;
@@ -101,11 +103,13 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
                 .sortId(endProduct.getId())
                 .sortValue(sortValueByProduct)
                 .build();
-        return CursorCommonResult.builder()
+        CursorCommonResult result = CursorCommonResult.builder()
                 .isEnd(isEnd)
                 .list(queryList)
                 .cursorCommonEntity(cursorCommonEntityResult)
                 .build();
+        return Result.success(result);
+
     }
 
 

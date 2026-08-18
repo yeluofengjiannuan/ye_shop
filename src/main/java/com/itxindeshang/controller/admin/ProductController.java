@@ -6,8 +6,6 @@ import com.itxindeshang.common.result.Result;
 import com.itxindeshang.pojo.dto.ProductDTO;
 import com.itxindeshang.service.ProductService;
 import jakarta.annotation.Resource;
-import jakarta.validation.Valid;
-import lombok.Getter;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,9 +17,6 @@ public class ProductController {
 
     /**
      * 新增商品
-     *
-     * @param productDTO
-     * @return
      */
     @PostMapping("/add")
     public Result addProduct(@RequestBody @Validated ProductDTO productDTO) {
@@ -34,7 +29,6 @@ public class ProductController {
     @GetMapping("/category/list")
     public Result<CursorCommonResult> getCategoryProductList(@Validated CursorCommonEntity cursorCommonEntity
             , Long categoryId) {
-        CursorCommonResult categoryProductList = productService.getCategoryProductList(cursorCommonEntity, categoryId);
-        return Result.success(categoryProductList);
+        return productService.getCategoryProductList(cursorCommonEntity, categoryId);
     }
 }

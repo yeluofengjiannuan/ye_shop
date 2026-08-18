@@ -11,5 +11,5 @@ import jakarta.validation.Valid;
 public interface ProductService extends IService<Product> {
     Result addProduct(ProductDTO productDTO);
 
-    CursorCommonResult getCategoryProductList(@Valid CursorCommonEntity cursorCommonEntity, Long categoryId);
+    Result<CursorCommonResult> getCategoryProductList(@Valid CursorCommonEntity cursorCommonEntity, Long categoryId);
 }
