@@ -1,6 +1,7 @@
 package com.itxindeshang.service.impl;
 
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
+import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.itxindeshang.common.constant.DataConstant;
 import com.itxindeshang.common.constant.MessageConstant;
@@ -75,13 +76,44 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         sortValue = ProductSortTypeEnum.filterFormatSortValue(productSortTypeEnum, sortValue);
         Integer querySize = cursorCommonEntity.getQuerySize();
         String sortField = productSortTypeEnum.getSortField();
-        String dbValue = productSortTypeEnum.getDbValue();
+        String dbValue = productSortTypeEnum.getDbValue();//TODO:未使用字段，后续可以考虑删除或者功能复用
         boolean isAsc = productSortTypeEnum.getCommonSortTypeEnum().isAsc();
         //dbvalue,isAsc?,productId, querySize,,desc
         List<ProductVO> queryList = productMapper.getCategoryProductList(categoryId, sortField, sortId, sortValue, isAsc, querySize);
         return getCursorCommonResult(queryList,querySize, productSortTypeEnum, sortType);
     }
 
+    /**
+     * 游标分类查询简介商品列表
+     * @param cursorCommonEntity 分类游标通用实体
+     * @param keyword 关键词
+     * @return 分类游标通用实体
+     */
+    //TODO:空传判断AOP
+    @Override
+    public Result<CursorCommonResult> searchProductList(CursorCommonEntity cursorCommonEntity, String keyword) {
+        Integer querySize = cursorCommonEntity.getQuerySize();
+        String sortType = cursorCommonEntity.getSortType();
+        Long sortId = cursorCommonEntity.getSortId();
+        String sortValue = cursorCommonEntity.getSortValue();
+        ProductSortTypeEnum productSortTypeEnum = ProductSortTypeEnum.getByValue(sortType);
+        String sortField = productSortTypeEnum.getSortField();
+        sortValue = ProductSortTypeEnum.filterFormatSortValue(productSortTypeEnum, sortValue);
+        boolean isAsc = productSortTypeEnum.getCommonSortTypeEnum().isAsc();
+        List<ProductVO> queryList = productMapper.searchProductList(sortField, sortValue,sortId, isAsc, querySize, keyword);
+
+        return getCursorCommonResult(queryList,querySize, productSortTypeEnum, sortType);
+
+    }
+
+    /**
+     * 游标结果封装
+     * @param queryList 查询列表
+     * @param querySize 查询数量
+     * @param productSortTypeEnum 商品排序种类枚举
+     * @param sortType 排序种类字符串
+     * @return 游标结果
+     */
     private Result<CursorCommonResult> getCursorCommonResult(List<ProductVO> queryList, Integer querySize, ProductSortTypeEnum productSortTypeEnum, String sortType) {
         boolean isEnd = false;
         if (CollectionUtils.isEmpty(queryList)) {

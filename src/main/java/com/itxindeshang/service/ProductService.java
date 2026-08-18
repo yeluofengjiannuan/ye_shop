@@ -12,4 +12,6 @@ public interface ProductService extends IService<Product> {
     Result addProduct(ProductDTO productDTO);
 
     Result<CursorCommonResult> getCategoryProductList(@Valid CursorCommonEntity cursorCommonEntity, Long categoryId);
+
+    Result<CursorCommonResult> searchProductList(@Valid CursorCommonEntity cursorCommonEntity, String keyword);
 }

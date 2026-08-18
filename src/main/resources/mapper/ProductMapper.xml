@@ -17,7 +17,60 @@
         FROM product
         WHERE category_id = #{categoryId}
 
-        <if test="sortValue != null and productId != null">
+        <if test="sortValue != null and sortValue !='' ">
+            AND (
+            <choose>
+                <when test="isAsc == true">
+                    ${sortField} &gt; #{sortValue}
+                </when>
+                <otherwise>
+                    ${sortField} &lt; #{sortValue}
+                </otherwise>
+            </choose>
+            OR
+            (
+            ${sortField} = #{sortValue}
+            AND
+            <choose>
+                <when test="isAsc == true">
+                    id &gt; #{productId}
+                </when>
+                <otherwise>
+                    id &lt; #{productId}
+                </otherwise>
+            </choose>
+            )
+            )
+        </if>
+
+        ORDER BY ${sortField}
+        <choose>
+            <when test="isAsc == true">ASC</when>
+            <otherwise>DESC</otherwise>
+        </choose>,
+        id
+        <choose>
+            <when test="isAsc == true">ASC</when>
+            <otherwise>DESC</otherwise>
+        </choose>
+
+        LIMIT #{querySize}
+    </select>
+    <select id="searchProductList" resultType="com.itxindeshang.pojo.vo.ProductVO">
+        SELECT
+        id,
+        name,
+        cover_image as image,
+        price,
+        description,
+        stock,
+        category_id,
+        create_time,
+        update_time
+        FROM product
+        WHERE name LIKE CONCAT('%', #{keyword}, '%')
+        <!-- 只要 sortValue 不为空，就必须进行游标过滤 -->
+        <if test="sortValue != null and sortValue!=''">
             AND (
             <choose>
                 <when test="isAsc == true">

@@ -6,11 +6,12 @@ import com.itxindeshang.common.result.Result;
 import com.itxindeshang.pojo.dto.ProductDTO;
 import com.itxindeshang.service.ProductService;
 import jakarta.annotation.Resource;
+import jakarta.validation.Valid;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/admin/product")
+@RequestMapping("/api/product")
 public class ProductController {
     @Resource
     private ProductService productService;
@@ -30,5 +31,13 @@ public class ProductController {
     public Result<CursorCommonResult> getCategoryProductList(@Validated CursorCommonEntity cursorCommonEntity
             , Long categoryId) {
         return productService.getCategoryProductList(cursorCommonEntity, categoryId);
+    }
+
+    /**
+     * 关键词查询商品
+     */
+    @GetMapping("/search")
+    public Result<CursorCommonResult> searchProductList(@Validated CursorCommonEntity cursorCommonEntity , String keyword) {
+        return productService.searchProductList(cursorCommonEntity, keyword);
     }
 }
