@@ -5,6 +5,7 @@ import com.itxindeshang.common.constant.DatePatternConstants;
 import com.itxindeshang.pojo.enums.CommonStatus;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -27,7 +28,7 @@ public class ProductVO  {
     /**
      * 商品价格
      */
-    private Number price;
+    private BigDecimal price;
 
     /**
      * 商品描述
