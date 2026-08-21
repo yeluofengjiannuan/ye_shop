@@ -12,23 +12,6 @@ public class RedisCacheTtlProperties {
 
     private long productDetailTtl;
 
-    private long productCollectionTtl;
-
-    private long cartTtl;
-
-    private long orderTtl;
-
-    private long productFirstCommentTtl;
-
-    private long productSecondCommentTtl;
-
-    private long productAppendCommentTtl;
-
-    private long productCommentCountTtl;
-
-    private long productCommentUserIdSetTtl;
-
-    private long userProductCommentLikeIdSetTtl;
-
+    private long productViewTtl;
 
 }
