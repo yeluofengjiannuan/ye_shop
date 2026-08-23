@@ -19,4 +19,6 @@ public interface ProductService extends IService<Product> {
 
 
     Result offShelfProduct(String productId);
+
+    Result onShelfProduct(String productId);
 }

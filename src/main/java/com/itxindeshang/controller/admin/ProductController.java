@@ -57,5 +57,11 @@ public class ProductController {
         return productService.offShelfProduct(productId);
     }
 
-
+    /**
+     * 上架商品
+     */
+    @PutMapping("/onShelf")
+    public Result onShelfProduct(String productId) {
+        return productService.onShelfProduct(productId);
+    }
 }

@@ -275,6 +275,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         // 2. 更新数据库状态为下架（假设 0 为下架状态）
         boolean isSuccess =lambdaUpdate()
                 .eq(Product::getId, productId)
+                .eq(Product::getStatus,CommonStatus.ACTIVE.getNumber())
                 .set(Product::getStatus, CommonStatus.INACTIVE.getNumber())
                 .update();
         if (!isSuccess) {
@@ -286,6 +287,27 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         return Result.success();
     }
 
+    /**
+     * 上架商品
+     * @param productId 商品id
+     * @return
+     */
+    @Override
+    public Result onShelfProduct(String productId) {
+        if (StringUtils.isBlank(productId)) {
+            return Result.error(MessageConstant.TOM_CAT_ERROR);
+        }
+        boolean isSuccess = lambdaUpdate()
+                .eq(Product::getId, productId)
+                .eq(Product::getStatus,CommonStatus.INACTIVE.getNumber())
+                .set(Product::getStatus, CommonStatus.ACTIVE.getNumber())
+                .update();
+
+        if (!isSuccess) {
+            return Result.error(MessageConstant.DATA_ERROR);
+        }
+        return Result.success();
+    }
 
     /**
      * 游标结果封装
