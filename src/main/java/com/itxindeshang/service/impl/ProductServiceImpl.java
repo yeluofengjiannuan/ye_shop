@@ -102,7 +102,6 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         String sortField = productSortTypeEnum.getSortField();
         String dbValue = productSortTypeEnum.getDbValue();//TODO:未使用字段，后续可以考虑删除或者功能复用
         boolean isAsc = productSortTypeEnum.getCommonSortTypeEnum().isAsc();
-        //dbvalue,isAsc?,productId, querySize,,desc
         List<ProductVO> queryList = productMapper.getCategoryProductList(categoryId, sortField, sortId, sortValue, isAsc, querySize);
         return getCursorCommonResult(queryList,querySize, productSortTypeEnum, sortType);
     }
@@ -261,6 +260,32 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             return Result.error(MessageConstant.DATA_ERROR);
         }
     }
+
+    /**
+     * 下架商品
+     * @param productId 商品id
+     * @return
+     */
+    @Override
+    public Result offShelfProduct(String productId) {
+        // 1. 参数校验
+        if (StringUtils.isBlank(productId)) {
+            return Result.error(MessageConstant.TOM_CAT_ERROR);
+        }
+        // 2. 更新数据库状态为下架（假设 0 为下架状态）
+        boolean isSuccess =lambdaUpdate()
+                .eq(Product::getId, productId)
+                .set(Product::getStatus, CommonStatus.INACTIVE.getNumber())
+                .update();
+        if (!isSuccess) {
+            return Result.error(MessageConstant.DATA_ERROR);
+        }
+        String productDetailKey = RedisKeyGenerator.productDetail(Long.valueOf(productId));
+        RedisConnector.delete(productDetailKey);
+        //多余的key采取ttl自然过期策略
+        return Result.success();
+    }
+
 
     /**
      * 游标结果封装

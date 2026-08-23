@@ -48,4 +48,14 @@ public class ProductController {
     public Result getProductDetail(String productId) {
         return productService.getProductDetail(productId);
     }
+
+    /**
+     * 下架商品
+     */
+    @PutMapping("/offShelf")
+    public Result offShelfProduct(String productId) {
+        return productService.offShelfProduct(productId);
+    }
+
+
 }
