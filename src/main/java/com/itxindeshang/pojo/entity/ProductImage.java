@@ -2,6 +2,10 @@ package com.itxindeshang.pojo.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
+import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 import com.itxindeshang.common.constant.DatePatternConstants;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -10,6 +14,7 @@ import lombok.NoArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.io.Serial;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
@@ -22,7 +27,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ProductImage {
+public class ProductImage implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
     /**
@@ -52,8 +57,10 @@ public class ProductImage {
     /**
      * 收藏时间
      */
-    @TableField(value = "create_time", fill = FieldFill.INSERT)
     @DateTimeFormat(pattern = DatePatternConstants.DATE_TIME_FORM)
     @JsonFormat(pattern = DatePatternConstants.DATE_TIME_FORM)
+    @TableField(value = "create_time", fill = FieldFill.INSERT) // 插入时自动填充
+    @JsonSerialize(using = LocalDateTimeSerializer.class)
+    @JsonDeserialize(using = LocalDateTimeDeserializer.class)
     private LocalDateTime createTime;
 }

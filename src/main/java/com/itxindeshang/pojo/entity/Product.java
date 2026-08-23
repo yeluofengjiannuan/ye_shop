@@ -113,7 +113,7 @@ public class Product implements Serializable {
      * 商品图片 URL 列表
      */
     @TableField(exist = false)
-    private List<String> imageUrls;
+    private List<ProductImage> imageUrls;
 
     /**
      *商品规格列表
