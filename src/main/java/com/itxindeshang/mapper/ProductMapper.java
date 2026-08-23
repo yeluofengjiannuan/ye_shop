@@ -50,4 +50,6 @@ public interface ProductMapper extends BaseMapper<Product> {
             @Param("querySize") Integer querySize,
             @Param("keyword") String keyword
             );
+
+    Product selectByProductId(String productId);
 }

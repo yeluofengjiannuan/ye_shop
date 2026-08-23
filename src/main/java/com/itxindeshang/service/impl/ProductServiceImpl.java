@@ -1,7 +1,6 @@
 package com.itxindeshang.service.impl;
 
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
-import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.itxindeshang.common.constant.DataConstant;
 import com.itxindeshang.common.constant.MessageConstant;
@@ -9,23 +8,39 @@ import com.itxindeshang.common.mapstruct.CopyMapper;
 import com.itxindeshang.common.result.CursorCommonEntity;
 import com.itxindeshang.common.result.CursorCommonResult;
 import com.itxindeshang.common.result.Result;
+import com.itxindeshang.context.BaseContext;
+import com.itxindeshang.infrastructure.redis.connect.RedisConnector;
+import com.itxindeshang.infrastructure.redis.connect.StringRedisConnector;
+import com.itxindeshang.infrastructure.redis.generator.RedisKeyGenerator;
+import com.itxindeshang.infrastructure.redis.properties.RedisCacheTtlProperties;
 import com.itxindeshang.mapper.ProductMapper;
 import com.itxindeshang.pojo.dto.ProductDTO;
 import com.itxindeshang.pojo.entity.Category;
 import com.itxindeshang.pojo.entity.Product;
+import com.itxindeshang.pojo.entity.ProductCollection;
+import com.itxindeshang.pojo.enums.CommonStatus;
 import com.itxindeshang.pojo.enums.ProductSortTypeEnum;
 import com.itxindeshang.pojo.vo.ProductVO;
 import com.itxindeshang.service.CategoryService;
+import com.itxindeshang.service.CollectionService;
 import com.itxindeshang.service.ProductService;
+import com.itxindeshang.util.JacksonUtils;
 import jakarta.annotation.Resource;
-import org.checkerframework.checker.units.qual.C;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> implements ProductService {
+    //TODO:查询商品浏览量提高在redis展示修改，身份唯一标识防止浏览量暴涨，后续补充redis相关
+
 
     @Resource
     private ProductMapper productMapper;
@@ -35,6 +50,15 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
 
     @Resource
     private CategoryService categoryService;
+
+    @Resource
+    private  RedisCacheTtlProperties redisCacheTtlProperties;
+
+    @Resource
+    private CollectionService collectionService;
+
+    @Resource
+    private RedissonClient redissonClient;
 
     /**
      *  新增商品
@@ -104,6 +128,138 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
 
         return getCursorCommonResult(queryList,querySize, productSortTypeEnum, sortType);
 
+    }
+
+    /**
+     * 根据商品id查询商品详情
+     * @param productId 商品id
+     * TODO：后续看是否加事务
+     * @return
+     */
+    @Override
+    public Result getProductDetail(String productId) {
+        //TODO:这里要增加浏览量的，redis储存加异步增加
+        //方案：uv:product:{id}:{今天日期} {userId},ttl 7天吗，还要考虑异步存硬件如clickHouse，看来得后续rocketmq补充功能了,那现在就先在第一次查出redis的情况下先存sql
+        //这个常量思考下
+        // 1. 基础参数校验
+        if (StringUtils.isBlank(productId)) {
+            return Result.error(MessageConstant.TOM_CAT_ERROR);
+        }
+        String userId = BaseContext.getUserId();
+        Long userIdLong = StringUtils.isNotBlank(userId) ? Long.valueOf(userId) : null;
+        //第一步：查商品详情缓存
+        String productDetailKey = RedisKeyGenerator.productDetail(Long.valueOf(productId));
+        Map<String, Object> productDetailMap = RedisConnector.opsForHash().entries(productDetailKey);
+
+        Product resultProduct;
+
+        // 1.1 缓存命中，且不是空对象（防穿透的空对象 size=1）
+        if (!productDetailMap.isEmpty() && productDetailMap.size() > 1) {
+            resultProduct = JacksonUtils.fromMap(productDetailMap, Product.class);
+        }  else {
+            // 1.2 缓存未命中，使用 Redisson 防击穿
+            String lockKey = RedisKeyGenerator.lockProductDetail(productId);
+            RLock lock = redissonClient.getLock(lockKey);
+            try {
+                boolean isLocked = lock.tryLock(5, -1, TimeUnit.SECONDS);
+
+                if (isLocked) {
+                    // 【双重检查】
+                    Map<String, Object> doubleCheckMap = RedisConnector.opsForHash().entries(productDetailKey);
+                    if (!CollectionUtils.isEmpty(doubleCheckMap) && doubleCheckMap.size() > 1) {
+                        resultProduct = JacksonUtils.fromMap(doubleCheckMap, Product.class);
+                    } else {
+                        // 真正去查数据库
+                        Product product = productMapper.selectByProductId(productId);
+                        if (Objects.isNull(product)) {
+
+                            StringRedisConnector.opsForHash().putAll(productDetailKey, Map.of(Product.Fields.id, productId));
+                            StringRedisConnector.expire(productDetailKey, 60, TimeUnit.SECONDS);
+
+                            //resultProduct 设为 null，作为“数据不存在”的标识
+                            resultProduct = null;
+                        } else {
+                            // 查到真实数据，写入缓存
+                            Map<String, Object> productDetailResultMap = JacksonUtils.toMap(product);
+                            RedisConnector.opsForHash().putAll(productDetailKey, productDetailResultMap);
+                            StringRedisConnector.expire(productDetailKey, redisCacheTtlProperties.getProductDetailTtl(), TimeUnit.SECONDS);
+                            resultProduct = product;
+                        }
+                    }
+                } else {
+                    // 没抢到锁，休眠重试
+                    Thread.sleep(50);
+                    Map<String, Object> retryMap = RedisConnector.opsForHash().entries(productDetailKey);
+                    if (!retryMap.isEmpty() && retryMap.size() > 1) {
+                        resultProduct = JacksonUtils.fromMap(retryMap, Product.class);
+                    } else {
+                        // 如果休眠后依然没缓存，说明对方查库也失败了，直接返回错误
+                        return Result.error(MessageConstant.DATA_ERROR);
+                    }
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                //常量
+                throw new RuntimeException(MessageConstant.LOCK_ERROR, e);
+            } finally {
+                // 【核心】：安全释放锁，无论中间发生了什么，这里一定会执行
+                if (lock.isHeldByCurrentThread()) {
+                    lock.unlock();
+                }
+            }
+        }
+
+// 第二步：异步记录浏览量
+//如果上面查不到数据，直接跳过后续逻辑
+        if (resultProduct != null && userIdLong != null) {
+            String productViewKey = RedisKeyGenerator.productView(productId, userIdLong);
+            Boolean isFirstView = RedisConnector.opsForValue().setIfAbsent(productViewKey, "1", 7, TimeUnit.DAYS);
+            if (Boolean.TRUE.equals(isFirstView)) {
+                String countKey = RedisKeyGenerator.productViewCount(productId);
+                RedisConnector.opsForValue().increment(countKey);
+                // TODO: 后续异步更新数据库,这里的逻辑后续我再优化为异步，现在直接sql加一
+                try {
+                    lambdaUpdate()
+                            .eq(Product::getId, productId)
+                            .setSql("view_count = view_count + 1") // 【修复1】：正确的字段名
+                            .update();
+                } catch (Exception e) {
+                    // 浏览量统计属于非核心业务，即使失败也不应阻断商品详情的返回,TODO：常量修改
+                    log.error("更新商品浏览量失败, productId: {}", productId, e);
+                }
+            }
+        }
+// ================= 第三步：处理收藏状态 =================
+// 【修复】：同样加上 null 保护，防止空指针异常
+        if (resultProduct != null) {
+            resultProduct.setIsCollection(CommonStatus.INACTIVE.getNumber());
+            if (userIdLong != null) {
+                // ... 收藏逻辑保持不变 ...
+                String collectionKey = RedisKeyGenerator.productCollection(Long.valueOf(productId));
+                Set<Object> userIdSet = (Set<Object>) RedisConnector.opsForValue().get(collectionKey);
+
+                // 如果 Redis 里没有收藏列表，查库并回填
+                if (CollectionUtils.isEmpty(userIdSet)) {
+                    List<ProductCollection> productCollectionList = collectionService.lambdaQuery()
+                            .eq(ProductCollection::getProductId, productId).list();
+                    userIdSet = productCollectionList.stream()
+                            .map(ProductCollection::getUserId).collect(Collectors.toSet());
+
+                    if (!userIdSet.isEmpty()) {
+                        RedisConnector.opsForValue().set(collectionKey, userIdSet);
+                        RedisConnector.expire(collectionKey, redisCacheTtlProperties.getProductCollectionTtl(), TimeUnit.SECONDS);
+                    }
+                }
+                // 判断当前用户是否在收藏集合中
+                if (userIdSet != null && userIdSet.contains(userIdLong)) {
+                    resultProduct.setIsCollection(CommonStatus.ACTIVE.getNumber());
+                }
+            }
+            return Result.success(resultProduct);
+        } else {
+            // 数据确实不存在，在这里统一返回错误
+            return Result.error(MessageConstant.DATA_ERROR);
+        }
     }
 
     /**

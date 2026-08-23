@@ -14,4 +14,6 @@ public class RedisCacheTtlProperties {
 
     private long productViewTtl;
 
+    private long productCollectionTtl;
+
 }

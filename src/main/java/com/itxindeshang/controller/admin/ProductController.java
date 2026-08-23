@@ -37,7 +37,15 @@ public class ProductController {
      * 关键词查询商品
      */
     @GetMapping("/search")
-    public Result<CursorCommonResult> searchProductList(@Validated CursorCommonEntity cursorCommonEntity , String keyword) {
+    public Result<CursorCommonResult> searchProductList(@Validated CursorCommonEntity cursorCommonEntity, String keyword) {
         return productService.searchProductList(cursorCommonEntity, keyword);
+    }
+
+    /**
+     * 获取商品详情
+     */
+    @GetMapping("/detail")
+    public Result getProductDetail(String productId) {
+        return productService.getProductDetail(productId);
     }
 }
