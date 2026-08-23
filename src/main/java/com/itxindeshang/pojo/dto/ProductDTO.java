@@ -1,5 +1,6 @@
 package com.itxindeshang.pojo.dto;
 
+import com.itxindeshang.pojo.entity.ProductImage;
 import com.itxindeshang.pojo.entity.ProductSpec;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
@@ -33,7 +34,7 @@ public class ProductDTO {
     // 富文本详情可能很大，视情况而定
     private String description;
 
-    private List<String> imageUrls;
+    private List<ProductImage> imageUrls;
 
     // 规格列表（如果有专门的规格DTO，这里就用 List<ProductSpecAddDTO>）
     private List<ProductSpec> specList;
