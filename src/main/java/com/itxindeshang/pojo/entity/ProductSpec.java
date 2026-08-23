@@ -2,6 +2,10 @@ package com.itxindeshang.pojo.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
+import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 import com.itxindeshang.common.constant.DatePatternConstants;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,6 +16,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import java.io.Serial;
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Date;
 
 /**
@@ -71,7 +76,9 @@ public class ProductSpec implements Serializable {
     @DateTimeFormat(pattern = DatePatternConstants.DATE_TIME_FORM)
     @JsonFormat(pattern = DatePatternConstants.DATE_TIME_FORM)
     @TableField(value = "create_time", fill = FieldFill.INSERT) // 插入时自动填充
-    private Date createTime;
+    @JsonSerialize(using = LocalDateTimeSerializer.class)
+    @JsonDeserialize(using = LocalDateTimeDeserializer.class)
+    private LocalDateTime createTime;
 
     /**
      * 更新时间
@@ -79,5 +86,7 @@ public class ProductSpec implements Serializable {
     @DateTimeFormat(pattern = DatePatternConstants.DATE_TIME_FORM)
     @JsonFormat(pattern = DatePatternConstants.DATE_TIME_FORM)
     @TableField(value = "update_time", fill = FieldFill.INSERT_UPDATE) // 插入和更新时自动填充
-    private Date updateTime;
+    @JsonSerialize(using = LocalDateTimeSerializer.class)
+    @JsonDeserialize(using = LocalDateTimeDeserializer.class)
+    private LocalDateTime updateTime;
 }
