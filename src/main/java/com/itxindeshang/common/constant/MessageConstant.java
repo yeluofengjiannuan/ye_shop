@@ -1,5 +1,11 @@
 package com.itxindeshang.common.constant;
 
+import org.apache.commons.lang3.StringUtils;
+
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
+
 public class MessageConstant {
     public static final String ACCOUNT_NOT_FOUND = "账号不存在";
     public static final String LOGIN_ERROR = "用户名或密码错误";
@@ -17,4 +23,7 @@ public class MessageConstant {
     public static final String SQL_MESSAGE_UPDATE_PARENTID_ERROR = "数据更新失败，不得修改父类ID";
     public static final String PRODUCT_CATEGORY_INVALID = "商品不能存放在一级分类下，请选择子分类";
     public static final String CATEGORY_NOT_FOUND = "未找到对应分类";
+    public static final String TOM_CAT_ERROR = "系统繁忙，请稍后重试";
+    public static final String DATA_ERROR ="数据异常，请重试";
+    public static final String LOCK_ERROR ="获取商品详情分布式锁异常";
 }
