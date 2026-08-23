@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.itxindeshang.common.constant.DataConstant;
 import com.itxindeshang.common.constant.MessageConstant;
+import com.itxindeshang.common.exception.BusinessException;
+import com.itxindeshang.common.exception.ProductException;
 import com.itxindeshang.common.mapstruct.CopyMapper;
 import com.itxindeshang.common.result.CursorCommonEntity;
 import com.itxindeshang.common.result.CursorCommonResult;
@@ -15,15 +17,11 @@ import com.itxindeshang.infrastructure.redis.generator.RedisKeyGenerator;
 import com.itxindeshang.infrastructure.redis.properties.RedisCacheTtlProperties;
 import com.itxindeshang.mapper.ProductMapper;
 import com.itxindeshang.pojo.dto.ProductDTO;
-import com.itxindeshang.pojo.entity.Category;
-import com.itxindeshang.pojo.entity.Product;
-import com.itxindeshang.pojo.entity.ProductCollection;
+import com.itxindeshang.pojo.entity.*;
 import com.itxindeshang.pojo.enums.CommonStatus;
 import com.itxindeshang.pojo.enums.ProductSortTypeEnum;
 import com.itxindeshang.pojo.vo.ProductVO;
-import com.itxindeshang.service.CategoryService;
-import com.itxindeshang.service.CollectionService;
-import com.itxindeshang.service.ProductService;
+import com.itxindeshang.service.*;
 import com.itxindeshang.util.JacksonUtils;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +29,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -60,29 +59,65 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     @Resource
     private RedissonClient redissonClient;
 
+    @Resource
+    private ProductSpecService productSpecService;
+
+    @Resource
+    private ProductImageService productImageService;
+
     /**
      *  新增商品
      * @param productDTO
-     * @return
      */
     @Override
-    public Result addProduct(ProductDTO productDTO) {
+    @Transactional(rollbackFor = Exception.class)
+    public Result<Long> addProduct(ProductDTO productDTO) {
         Product product = copyMapper.productDTOToProduct(productDTO);
         Category category = categoryService.getById(product.getCategoryId());
+        List<ProductImage> images =productDTO.getImageUrls();
+        List<ProductSpec> specList = productDTO.getSpecList();
+        if (CollectionUtils.isEmpty(images) || CollectionUtils.isEmpty(specList)) {
+            throw new ProductException(MessageConstant.PRODUCT_IMAGE_OR_SPEC_EMPTY);
+        }
         if (category == null) {
-            return Result.error(MessageConstant.CATEGORY_NOT_FOUND);
+            throw new ProductException(MessageConstant.PRODUCT_CATEGORY_INVALID);
         }
         Long categoryParentId = category.getParentId();
         //商品不得出现在第一级分类
         //TODO:这是二级分类下才能这样，后续考虑增加分级代码无法复用，考虑优化
         if (DataConstant.ZERO_LONG.equals(categoryParentId)) {
-            return Result.error(MessageConstant.PRODUCT_CATEGORY_INVALID);
+            //TODO:事务只认异常，这里要抛异常
+            throw new ProductException(MessageConstant.SQL_MESSAGE_SAVE_ERROR);
         }
         boolean isSuccess = save(product);
         if (!isSuccess) {
-            return Result.error(MessageConstant.SQL_MESSAGE_SAVE_ERROR);
+            throw new ProductException(MessageConstant.SQL_MESSAGE_SAVE_ERROR);
         }
-        return Result.success(product);
+        Long productId = product.getId();
+        images.forEach(image -> {
+            image.setProductId(productId);
+            image.setId(null);
+        });
+        specList.forEach(spec -> {
+            spec.setProductId(productId);
+            spec.setId(null);
+        });
+        isSuccess = productSpecService.saveBatch(specList);
+        if (!isSuccess) {
+            throw new ProductException(MessageConstant.SQL_MESSAGE_SAVE_ERROR);
+        }
+        isSuccess = productImageService.saveBatch(images);
+        if (!isSuccess) {
+            throw new ProductException(MessageConstant.SQL_MESSAGE_SAVE_ERROR);
+        }
+        lambdaUpdate()
+                .eq(Product::getId, productId)
+                // 让数据库自己求和，Java 一行代码搞定！
+                .setSql("stock = (SELECT IFNULL(SUM(stock), 0) FROM product_spec WHERE product_id = " + productId + ")")
+                // 让数据库自己求最低规格价
+                .setSql("price = (SELECT IFNULL(MIN(price), 0) FROM product_spec WHERE product_id = " + productId + ")")
+                .update();
+        return Result.success(productId);
     }
     /**
      * 游标查询分类下所有商品列表

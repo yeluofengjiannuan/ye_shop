@@ -9,7 +9,7 @@ import com.itxindeshang.pojo.entity.Product;
 import jakarta.validation.Valid;
 
 public interface ProductService extends IService<Product> {
-    Result addProduct(ProductDTO productDTO);
+    Result<Long> addProduct(ProductDTO productDTO);
 
     Result<CursorCommonResult> getCategoryProductList(@Valid CursorCommonEntity cursorCommonEntity, Long categoryId);
 

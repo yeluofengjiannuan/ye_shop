@@ -20,7 +20,7 @@ public class ProductController {
      * 新增商品
      */
     @PostMapping("/add")
-    public Result addProduct(@RequestBody @Validated ProductDTO productDTO) {
+    public Result<Long> addProduct(@RequestBody @Validated ProductDTO productDTO) {
         return productService.addProduct(productDTO);
     }
 
