@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
  * @TableName collection
  */
 @Data
-@TableName(value = "collectio")
+@TableName(value = "collection")
 public class ProductCollection implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
