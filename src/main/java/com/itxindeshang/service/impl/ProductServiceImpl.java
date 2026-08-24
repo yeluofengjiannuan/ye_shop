@@ -43,7 +43,7 @@ import java.util.stream.Collectors;
 @Service
 public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> implements ProductService {
     //TODO:查询商品浏览量提高在redis展示修改，身份唯一标识防止浏览量暴涨，后续补充redis相关
-
+    //TODO:前端如果传个 "abc" productId 的校验就是问题了，要解决
 
     @Resource
     private ProductMapper productMapper;
@@ -186,7 +186,6 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         //TODO:这里要增加浏览量的，redis储存加异步增加
         //方案：uv:product:{id}:{今天日期} {userId},ttl 7天吗，还要考虑异步存硬件如clickHouse，看来得后续rocketmq补充功能了,那现在就先在第一次查出redis的情况下先存sql
         //这个常量思考下
-        // 1. 基础参数校验
         if (StringUtils.isBlank(productId)) {
             return Result.error(MessageConstant.TOM_CAT_ERROR);
         }

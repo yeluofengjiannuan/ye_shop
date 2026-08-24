@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/product")
 public class ProductController {
+    //TODO：序列器配置好了，后续把id的接收改回Long；
     @Resource
     private ProductService productService;
 
@@ -70,7 +71,7 @@ public class ProductController {
      * 更新商品
      */
     @PutMapping("/update")
-    public Result updateProduct(@RequestBody ProductUpdateDTO productUpdateDTO) {
+    public Result<?> updateProduct(@RequestBody  @Validated ProductUpdateDTO productUpdateDTO) {
         return productService.updateProduct(productUpdateDTO);
 
     }

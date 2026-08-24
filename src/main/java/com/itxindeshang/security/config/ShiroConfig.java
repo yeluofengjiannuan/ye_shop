@@ -124,7 +124,7 @@ public class ShiroConfig {
          //TODO：这里是我的项目后续自己安排的
         filterChainDefinitionMap.put("/api/login/**", "anon");
         //TODO：测试完记得弄回来
-//        filterChainDefinitionMap.put("/**", "jwt");
+        filterChainDefinitionMap.put("/**", "jwt");
         return filterChainDefinitionMap;
     }
     // 7. 启用Shiro注解支持（@RequiresRoles等）

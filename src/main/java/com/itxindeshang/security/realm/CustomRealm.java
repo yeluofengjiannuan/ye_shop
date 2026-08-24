@@ -107,7 +107,7 @@ public class CustomRealm extends AuthorizingRealm {
         List<SysPermission> sysPermissionList = (List<SysPermission>) userMap.get(SysUser.Fields.sysPermissionList);
         UserInfo userInfo = (UserInfo) userMap.get(SysUser.Fields.userInfo);
 
-
+        //TODO：这里的校验其实是有问题，出现空集合还能通过，后续记得更改，现在可以通过方便测试而已
         if (Objects.isNull(sysRoleList) || Objects.isNull(sysPermissionList) || Objects.isNull(userInfo)) {
             throw new UnknownAccountException(MessageConstant.USER_NOT_LOGIN);
 

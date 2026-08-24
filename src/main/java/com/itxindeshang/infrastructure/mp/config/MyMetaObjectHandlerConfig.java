@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 
 /**
  * 基于 mybatis-plus 实现在实体类进行时间填充
+ * TODO：这里的好像要用Component
  */
 @Configuration
 public class MyMetaObjectHandlerConfig implements MetaObjectHandler {
