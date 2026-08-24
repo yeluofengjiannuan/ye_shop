@@ -4,6 +4,7 @@ import com.itxindeshang.common.result.CursorCommonEntity;
 import com.itxindeshang.common.result.CursorCommonResult;
 import com.itxindeshang.common.result.Result;
 import com.itxindeshang.pojo.dto.ProductDTO;
+import com.itxindeshang.pojo.dto.ProductUpdateDTO;
 import com.itxindeshang.service.ProductService;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
@@ -63,5 +64,14 @@ public class ProductController {
     @PutMapping("/onShelf")
     public Result onShelfProduct(String productId) {
         return productService.onShelfProduct(productId);
+    }
+
+    /**
+     * 更新商品
+     */
+    @PutMapping("/update")
+    public Result updateProduct(@RequestBody ProductUpdateDTO productUpdateDTO) {
+        return productService.updateProduct(productUpdateDTO);
+
     }
 }

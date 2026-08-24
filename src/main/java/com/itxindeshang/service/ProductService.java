@@ -5,6 +5,7 @@ import com.itxindeshang.common.result.CursorCommonEntity;
 import com.itxindeshang.common.result.CursorCommonResult;
 import com.itxindeshang.common.result.Result;
 import com.itxindeshang.pojo.dto.ProductDTO;
+import com.itxindeshang.pojo.dto.ProductUpdateDTO;
 import com.itxindeshang.pojo.entity.Product;
 import jakarta.validation.Valid;
 
@@ -21,4 +22,6 @@ public interface ProductService extends IService<Product> {
     Result offShelfProduct(String productId);
 
     Result onShelfProduct(String productId);
+
+    Result updateProduct(ProductUpdateDTO productUpdateDTO);
 }

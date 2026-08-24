@@ -7,6 +7,8 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 import com.itxindeshang.common.constant.DatePatternConstants;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -56,6 +58,8 @@ public class ProductSpec implements Serializable {
      * 规格单价
      */
     @TableField(value = "price")
+    @NotNull(message = "商品价格不能为空")
+    @DecimalMin(value = "0.01", message = "商品价格必须大于0")
     private BigDecimal price;
 
     /**

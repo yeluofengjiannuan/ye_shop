@@ -1,5 +1,6 @@
 package com.itxindeshang.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.itxindeshang.common.constant.DataConstant;
@@ -15,8 +16,11 @@ import com.itxindeshang.infrastructure.redis.connect.RedisConnector;
 import com.itxindeshang.infrastructure.redis.connect.StringRedisConnector;
 import com.itxindeshang.infrastructure.redis.generator.RedisKeyGenerator;
 import com.itxindeshang.infrastructure.redis.properties.RedisCacheTtlProperties;
+import com.itxindeshang.mapper.ProductImageMapper;
 import com.itxindeshang.mapper.ProductMapper;
+import com.itxindeshang.mapper.ProductSpecMapper;
 import com.itxindeshang.pojo.dto.ProductDTO;
+import com.itxindeshang.pojo.dto.ProductUpdateDTO;
 import com.itxindeshang.pojo.entity.*;
 import com.itxindeshang.pojo.enums.CommonStatus;
 import com.itxindeshang.pojo.enums.ProductSortTypeEnum;
@@ -64,6 +68,12 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
 
     @Resource
     private ProductImageService productImageService;
+
+    @Resource
+    private ProductImageMapper productImageMapper;
+
+    @Resource
+    private ProductSpecMapper productSpecMapper;
 
     /**
      *  新增商品
@@ -116,6 +126,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
                 .setSql("stock = (SELECT IFNULL(SUM(stock), 0) FROM product_spec WHERE product_id = " + productId + ")")
                 // 让数据库自己求最低规格价
                 .setSql("price = (SELECT IFNULL(MIN(price), 0) FROM product_spec WHERE product_id = " + productId + ")")
+                .setSql("enterprice_prise = (SELECT IFNULL(MIN(enterprise_price), 0) FROM product_spec WHERE product_id = " + productId + ")")
                 .update();
         return Result.success(productId);
     }
@@ -341,6 +352,62 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         if (!isSuccess) {
             return Result.error(MessageConstant.DATA_ERROR);
         }
+        return Result.success();
+    }
+
+    /**
+     * 更新商品信息
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Result updateProduct(ProductUpdateDTO productUpdateDTO) {
+        Product existProduct = this.getById(productUpdateDTO.getId());
+        if (existProduct == null) {
+            throw new ProductException(MessageConstant.PRODUCT_NOT_FOUND);
+        }
+        Product updateProduct = copyMapper.productUpdateDTOToProduct(productUpdateDTO);
+        Long productId =updateProduct.getId();
+        List<ProductImage> imageUrls = productUpdateDTO.getImageUrls();
+        List<ProductSpec> specList = productUpdateDTO.getSpecList();
+        boolean isSuccess = updateById(updateProduct);
+        if (!isSuccess) {
+            throw new ProductException(MessageConstant.SQL_MESSAGE_SAVE_ERROR);
+        }
+        if (!CollectionUtils.isEmpty(imageUrls)) {
+            productImageMapper.delete(new LambdaQueryWrapper<ProductImage>()
+                    .eq(ProductImage::getProductId, updateProduct.getId()));
+            imageUrls.forEach(imageUrl -> {
+                imageUrl.setId(null);
+                imageUrl.setProductId(updateProduct.getId());
+            });
+            isSuccess = productImageService.saveBatch(imageUrls);
+            if (!isSuccess) {
+                throw new ProductException(MessageConstant.SQL_MESSAGE_SAVE_ERROR);
+            }
+        }
+        if (!CollectionUtils.isEmpty(specList)) {
+            productSpecMapper.delete(new LambdaQueryWrapper<ProductSpec>()
+                    .eq(ProductSpec::getProductId, updateProduct.getId()));
+            specList.forEach(spec -> {
+                spec.setId(null);
+                spec.setProductId(updateProduct.getId());
+            });
+            isSuccess = productSpecService.saveBatch(specList);
+            if (!isSuccess) {
+                throw new ProductException(MessageConstant.SQL_MESSAGE_SAVE_ERROR);
+            }
+            lambdaUpdate()
+                    .eq(Product::getId,productId)
+                    // 让数据库自己求和，Java 一行代码搞定！
+                    .setSql("stock = (SELECT IFNULL(SUM(stock), 0) FROM product_spec WHERE product_id = " + productId + ")")
+                    // 让数据库自己求最低规格价
+                    .setSql("price = (SELECT IFNULL(MIN(price), 0) FROM product_spec WHERE product_id = " + productId + ")")
+                    .setSql("enterprise_price = (SELECT IFNULL(MIN(enterprise_price), 0) FROM product_spec WHERE product_id = " + productId + ")")
+                    .update();
+        }
+
+        String productDetailKey = RedisKeyGenerator.productDetail(updateProduct.getId());
+        RedisConnector.delete(productDetailKey);
         return Result.success();
     }
 
