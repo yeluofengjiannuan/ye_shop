@@ -3,6 +3,7 @@ package com.itxindeshang.common.mapstruct;
 import com.itxindeshang.pojo.UserInfo;
 import com.itxindeshang.pojo.dto.CategoryDTO;
 import com.itxindeshang.pojo.dto.ProductDTO;
+import com.itxindeshang.pojo.dto.ProductUpdateDTO;
 import com.itxindeshang.pojo.entity.Category;
 import com.itxindeshang.pojo.entity.Product;
 import com.itxindeshang.pojo.entity.SysUser;
@@ -19,4 +20,6 @@ public interface CopyMapper {
     Category categoryDTOToCategroy(CategoryDTO categoryDTO);
 
     Product productDTOToProduct(ProductDTO productDTO);
+
+    Product productUpdateDTOToProduct(ProductUpdateDTO productUpdateDTO);
 }
