@@ -8,11 +8,11 @@ public class CartProductDTO {
     /**
      * 商品 id
      */
-    private String productId;
+    private Long productId;
     /**
      * 规格 id
      */
-    private String specId;
+    private Long specId;
     /**
      * 数量
      */
