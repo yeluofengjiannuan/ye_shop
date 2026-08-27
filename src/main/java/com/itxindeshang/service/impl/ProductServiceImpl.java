@@ -311,12 +311,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
      * @return
      */
     @Override
-    public Result offShelfProduct(String productId) {
-        // 1. 参数校验
-        if (StringUtils.isBlank(productId)) {
-            return Result.error(MessageConstant.TOM_CAT_ERROR);
-        }
-        // 2. 更新数据库状态为下架（假设 0 为下架状态）
+    public Result offShelfProduct(Long productId) {
+        // 更新数据库状态为下架（假设 0 为下架状态）
         boolean isSuccess =lambdaUpdate()
                 .eq(Product::getId, productId)
                 .eq(Product::getStatus,CommonStatus.ACTIVE.getNumber())
@@ -325,7 +321,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         if (!isSuccess) {
             return Result.error(MessageConstant.DATA_ERROR);
         }
-        String productDetailKey = RedisKeyGenerator.productDetail(Long.valueOf(productId));
+        String productDetailKey = RedisKeyGenerator.productDetail(productId);
         RedisConnector.delete(productDetailKey);
         //多余的key采取ttl自然过期策略
         return Result.success();

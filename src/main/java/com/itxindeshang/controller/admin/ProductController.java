@@ -55,7 +55,7 @@ public class ProductController {
      * 下架商品
      */
     @PutMapping("/offShelf")
-    public Result offShelfProduct(String productId) {
+    public Result offShelfProduct(Long productId) {
         return productService.offShelfProduct(productId);
     }
 

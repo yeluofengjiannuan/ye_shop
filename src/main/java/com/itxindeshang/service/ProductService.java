@@ -19,7 +19,7 @@ public interface ProductService extends IService<Product> {
     Result getProductDetail(Long productId);
 
 
-    Result offShelfProduct(String productId);
+    Result offShelfProduct(Long productId);
 
     Result onShelfProduct(String productId);
 
