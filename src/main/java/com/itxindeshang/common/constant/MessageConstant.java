@@ -28,4 +28,5 @@ public class MessageConstant {
     public static final String LOCK_ERROR ="获取商品详情分布式锁异常";
     public static final String PRODUCT_IMAGE_OR_SPEC_EMPTY = "图片或商品规格不得为空";
     public static final String PRODUCT_NOT_FOUND = "未找到改商品";
+    public static final String SYSTEM_BUSY = "系统繁忙";
 }

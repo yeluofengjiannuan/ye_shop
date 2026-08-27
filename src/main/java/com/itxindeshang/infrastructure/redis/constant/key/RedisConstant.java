@@ -17,5 +17,7 @@ public class RedisConstant {
     public static final String VIEW = "view:";
     public static final String COUNT = "count:";
     public static final String LOCK ="lock:";
+    public static final String CART = "cart:";
+    public static final String PREFIX_SPEC = "spec:";
 }
 

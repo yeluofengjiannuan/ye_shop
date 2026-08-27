@@ -80,4 +80,37 @@ public class RedisKeyGenerator {
     public static String lockProductDetail(String productId) {
         return RedisConstant.LOCK+ RedisConstant.PREFIX_PRODUCT + productId;
     }
+
+
+    /**
+     * cartkey
+     * cart:+user: + userId
+     * @param userId 用户id
+     * @return
+     */
+    public static String cartKey(String userId) {
+        return RedisConstant.CART+RedisConstant.USER +userId;
+    }
+
+    /**
+     * cartHashKey
+     * product: + productId+, +spec: +specId
+     * @param productId 商品id
+     * @param specId 规格id
+     * @return
+     */
+    public static String cartHashKey(Long productId, Long specId) {
+        return RedisConstant.PREFIX_PRODUCT+ productId + ","+RedisConstant.PREFIX_SPEC + specId;
+    }
+
+    /**
+     * lockCart
+     * lock: +cart: +userId+:+ specId
+     * @param userId 用户id
+     * @param specId 商品规格id
+     * @return
+     */
+    public static String lockCart(String userId, Long specId) {
+        return RedisConstant.LOCK +RedisConstant.CART +userId +":"+ specId;
+    }
 }
