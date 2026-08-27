@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace= "com.itxindeshang.mapper.CartMapper">
+    <select id="getCartQuentityOnly" resultType="java.lang.Integer">
+        SELECT c.quantity
+        FROM cart c
+        WHERE c.user_id = #{userId}
+        AND c.product_id = #{productId}
+        AND c.spec_id = #{specId}
+        LIMIT 1
+    </select>
+    <select id="checkProductStatus" resultType="java.lang.Integer">
+        SELECT p.status
+        FROM product p
+        INNER JOIN product_spec s ON p.id = s.product_id
+        WHERE p.id = #{productId}
+        AND s.id = #{specId}
+        AND p.status = 1
+        LIMIT 1
+    </select>
+</mapper>
