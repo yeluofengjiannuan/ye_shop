@@ -69,7 +69,6 @@
 <!--            <artifactId>mybatis-plus-spring-boot4-starter</artifactId>-->
 <!--            <version>3.5.15</version>-->
 <!--        </dependency>-->
-        <!-- 核心：MyBatis-Plus（精准排除冲突依赖，配置正确✅） -->
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-boot-starter</artifactId>

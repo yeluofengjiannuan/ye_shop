@@ -52,4 +52,5 @@ public interface ProductMapper extends BaseMapper<Product> {
             );
 
     Product selectByProductId(String productId);
+
 }

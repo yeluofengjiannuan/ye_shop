@@ -192,4 +192,5 @@
 
         LIMIT #{querySize}
     </select>
+
 </mapper>
