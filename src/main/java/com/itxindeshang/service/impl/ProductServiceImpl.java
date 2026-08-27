@@ -333,16 +333,12 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
      * @return
      */
     @Override
-    public Result onShelfProduct(String productId) {
-        if (StringUtils.isBlank(productId)) {
-            return Result.error(MessageConstant.TOM_CAT_ERROR);
-        }
+    public Result onShelfProduct(Long productId) {
         boolean isSuccess = lambdaUpdate()
                 .eq(Product::getId, productId)
                 .eq(Product::getStatus,CommonStatus.INACTIVE.getNumber())
                 .set(Product::getStatus, CommonStatus.ACTIVE.getNumber())
                 .update();
-
         if (!isSuccess) {
             return Result.error(MessageConstant.DATA_ERROR);
         }

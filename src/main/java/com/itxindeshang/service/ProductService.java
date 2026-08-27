@@ -21,7 +21,7 @@ public interface ProductService extends IService<Product> {
 
     Result offShelfProduct(Long productId);
 
-    Result onShelfProduct(String productId);
+    Result onShelfProduct(Long productId);
 
     Result updateProduct(ProductUpdateDTO productUpdateDTO);
 }

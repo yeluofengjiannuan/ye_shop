@@ -63,7 +63,7 @@ public class ProductController {
      * 上架商品
      */
     @PutMapping("/onShelf")
-    public Result onShelfProduct(String productId) {
+    public Result onShelfProduct(Long productId) {
         return productService.onShelfProduct(productId);
     }
 
