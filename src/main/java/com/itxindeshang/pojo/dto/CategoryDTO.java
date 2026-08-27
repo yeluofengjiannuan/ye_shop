@@ -13,7 +13,7 @@ public class CategoryDTO {
     /**
      * 父分类 id
      */
-    private String parentId;
+    private Long parentId;
 
     /**
      * 排序
