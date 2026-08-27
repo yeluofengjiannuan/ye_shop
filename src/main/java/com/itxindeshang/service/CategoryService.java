@@ -16,7 +16,7 @@ public interface CategoryService extends IService<Category> {
 
     void refreshCategoryCache();
 
-    Result deleteById(String categoryId);
+    Result deleteById(Long categoryId);
 
     Result updateCategory(String id, CategoryDTO categoryDTO);
 }

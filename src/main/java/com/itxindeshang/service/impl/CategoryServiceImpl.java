@@ -121,13 +121,13 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
      * @return
      */
     @Override
-    public Result deleteById(String categoryId) {
-        Long id = Long.parseLong(categoryId);
-        Category category = getCategoryChildren(id);
+    public Result deleteById(Long categoryId) {
+//        Long id = Long.parseLong(categoryId);
+        Category category = getCategoryChildren(categoryId);
         if (!CollectionUtils.isEmpty(category.getChildren())) {
             return Result.error(MessageConstant.SQL_MESSAGE_DELETE_ERROR);
         }
-        boolean isSuccess = removeById(id);
+        boolean isSuccess = removeById(categoryId);
         if (!isSuccess) {
             return Result.error(MessageConstant.SQL_MESSAGE_DELETE_ERROR);
         }
