@@ -39,19 +39,19 @@ public class CategoryController {
      * @param categoryId
      * @return
      */
-    @DeleteMapping("//delete/{categoryId}")
+    @DeleteMapping("/delete/{categoryId}")
     public Result deleteCategory(@PathVariable Long categoryId) {
         return categoryService.deleteById(categoryId);
     }
 
     /**
      *
-     * @param id
+     * @param categoryId
      * @param categoryDTO
      * @return
      */
-    @PostMapping("/update/{id}")
-    public Result updateCategory(@PathVariable String id, @RequestBody CategoryDTO categoryDTO) {
-        return categoryService.updateCategory(id, categoryDTO);
+    @PostMapping("/update/{categoryId}")
+    public Result updateCategory(@PathVariable Long categoryId, @RequestBody CategoryDTO categoryDTO) {
+        return categoryService.updateCategory(categoryId, categoryDTO);
     }
 }

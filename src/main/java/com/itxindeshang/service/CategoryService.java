@@ -18,5 +18,5 @@ public interface CategoryService extends IService<Category> {
 
     Result deleteById(Long categoryId);
 
-    Result updateCategory(String id, CategoryDTO categoryDTO);
+    Result updateCategory(Long categoryId, CategoryDTO categoryDTO);
 }

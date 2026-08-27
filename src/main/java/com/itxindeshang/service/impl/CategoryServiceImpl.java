@@ -138,15 +138,13 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
     /**
      * 更新分类
      * TODO:更新parentID是最要命的，要想好逻辑,最后的重复可以看着修改更优雅
-     * @param id
+     * @param categoryId 商品id
      * @param categoryDTO
      * @return
      */
     @Override
-    public Result updateCategory(String id, CategoryDTO categoryDTO) {
-        Long categoryId = Long.parseLong(id);
+    public Result updateCategory(Long categoryId, CategoryDTO categoryDTO) {
         Category category = copyMapper.categoryDTOToCategroy(categoryDTO);
-
         Category categoryCache = getCategoryChildren(categoryId);
         if (categoryCache == null) {
             Category selectedCategory = getById(categoryId);
