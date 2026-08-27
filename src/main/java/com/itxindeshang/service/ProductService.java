@@ -16,7 +16,7 @@ public interface ProductService extends IService<Product> {
 
     Result<CursorCommonResult> searchProductList(@Valid CursorCommonEntity cursorCommonEntity, String keyword);
 
-    Result getProductDetail(String productId);
+    Result getProductDetail(Long productId);
 
 
     Result offShelfProduct(String productId);

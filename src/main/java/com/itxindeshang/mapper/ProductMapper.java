@@ -51,6 +51,6 @@ public interface ProductMapper extends BaseMapper<Product> {
             @Param("keyword") String keyword
             );
 
-    Product selectByProductId(String productId);
+    Product selectByProductId(Long productId);
 
 }

@@ -182,17 +182,17 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
      * @return
      */
     @Override
-    public Result getProductDetail(String productId) {
+    public Result getProductDetail(Long productId) {
         //TODO:这里要增加浏览量的，redis储存加异步增加
         //方案：uv:product:{id}:{今天日期} {userId},ttl 7天吗，还要考虑异步存硬件如clickHouse，看来得后续rocketmq补充功能了,那现在就先在第一次查出redis的情况下先存sql
         //这个常量思考下
-        if (StringUtils.isBlank(productId)) {
+        /*if (StringUtils.isBlank(productId)) {
             return Result.error(MessageConstant.TOM_CAT_ERROR);
-        }
+        }*/
         String userId = BaseContext.getUserId();
         Long userIdLong = StringUtils.isNotBlank(userId) ? Long.valueOf(userId) : null;
         //第一步：查商品详情缓存
-        String productDetailKey = RedisKeyGenerator.productDetail(Long.valueOf(productId));
+        String productDetailKey = RedisKeyGenerator.productDetail(productId);
         Map<String, Object> productDetailMap = RedisConnector.opsForHash().entries(productDetailKey);
 
         Product resultProduct;
@@ -216,8 +216,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
                         // 真正去查数据库
                         Product product = productMapper.selectByProductId(productId);
                         if (Objects.isNull(product)) {
-
-                            StringRedisConnector.opsForHash().putAll(productDetailKey, Map.of(Product.Fields.id, productId));
+                            StringRedisConnector.opsForHash().putAll(productDetailKey, Map.of(Product.Fields.id, String.valueOf(productId)));
                             StringRedisConnector.expire(productDetailKey, 60, TimeUnit.SECONDS);
 
                             //resultProduct 设为 null，作为“数据不存在”的标识
@@ -279,7 +278,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             resultProduct.setIsCollection(CommonStatus.INACTIVE.getNumber());
             if (userIdLong != null) {
                 // ... 收藏逻辑保持不变 ...
-                String collectionKey = RedisKeyGenerator.productCollection(Long.valueOf(productId));
+                String collectionKey = RedisKeyGenerator.productCollection(productId);
                 Set<Object> userIdSet = (Set<Object>) RedisConnector.opsForValue().get(collectionKey);
 
                 // 如果 Redis 里没有收藏列表，查库并回填

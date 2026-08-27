@@ -54,7 +54,7 @@ public class RedisKeyGenerator {
      * product: +view: + productId + today
      * @return
      */
-    public static String productView(String productId,Long userId) {
+    public static String productView(Long productId,Long userId) {
         String date = LocalDate.now().toString();
         return RedisConstant.PREFIX_PRODUCT +RedisConstant.VIEW + date +":" + userId;
     }
@@ -73,11 +73,11 @@ public class RedisKeyGenerator {
      * product +view+ count: +productId
      * @return
      */
-    public static String productViewCount(String productId) {
+    public static String productViewCount(Long productId) {
         return RedisConstant.PREFIX_PRODUCT +RedisConstant.VIEW +RedisConstant.COUNT + productId;
     }
     //lock:product:detail
-    public static String lockProductDetail(String productId) {
+    public static String lockProductDetail(Long productId) {
         return RedisConstant.LOCK+ RedisConstant.PREFIX_PRODUCT + productId;
     }
 
