@@ -19,4 +19,21 @@
         AND p.status = 1
         LIMIT 1
     </select>
+    <select id="selectSpecsWithProduct" resultType="com.itxindeshang.pojo.dto.CartProductSpecDTO">
+        SELECT
+        s.id AS spec_id,
+        s.product_id,
+        p.name AS product_name,
+        p.cover_image AS product_image,
+        p.status ,
+        s.price,
+        s.stock,
+        s.spec_text
+        FROM product_spec s
+        INNER JOIN product p ON s.product_id = p.id AND p.status = 1
+        WHERE s.id IN
+        <foreach collection="specIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
 </mapper>

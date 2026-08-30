@@ -1,7 +1,11 @@
 package com.itxindeshang.service.impl;
 
+import com.baomidou.mybatisplus.core.assist.ISqlRunner;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.itxindeshang.common.constant.MessageConstant;
+import com.itxindeshang.common.mapstruct.CopyMapper;
 import com.itxindeshang.common.result.Result;
 import com.itxindeshang.context.BaseContext;
 import com.itxindeshang.infrastructure.redis.connect.RedisConnector;
@@ -11,17 +15,21 @@ import com.itxindeshang.infrastructure.redis.properties.RedisCacheTtlProperties;
 import com.itxindeshang.mapper.CartMapper;
 import com.itxindeshang.mapper.ProductMapper;
 import com.itxindeshang.pojo.dto.CartProductDTO;
+import com.itxindeshang.pojo.dto.CartProductSpecDTO;
 import com.itxindeshang.pojo.entity.Cart;
+import com.itxindeshang.pojo.entity.CartItem;
+import com.itxindeshang.pojo.entity.Product;
+import com.itxindeshang.pojo.entity.ProductSpec;
 import com.itxindeshang.service.CartService;
 import jakarta.annotation.Resource;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
-import org.springframework.data.redis.core.HashOperations;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static jodd.util.ThreadUtil.sleep;
 
@@ -36,6 +44,9 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
 
     @Resource
     private CartMapper cartMapper;
+
+    @Resource
+    private CopyMapper copyMapper;
 
 
     /**
@@ -141,5 +152,54 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
             save(cart);
         }
         return Result.success();
+    }
+
+    /**
+     * 获取购物车列表
+     * @return
+     */
+    @Override
+    public Result getCartList() {
+        //cartItem是展示的，联表查两个库，但还要查product判断是否上架
+        String userId = BaseContext.getUserId();
+        String cartKey = RedisKeyGenerator.cartKey(userId);
+
+        List<Cart> dbCartList = lambdaQuery()
+                .eq(Cart::getUserId, userId)
+                .orderByDesc(Cart::getCreateTime) // 按加购时间倒序
+                .list();
+
+        if (CollectionUtils.isEmpty(dbCartList)) {
+            return Result.success(Collections.emptyList());
+        }
+        // ========== 第二步：批量联表查出商品详情 ==========
+        Set<Long> specIds = dbCartList.stream()
+                .map(Cart::getSpecId)
+                .collect(Collectors.toSet());
+        List<CartProductSpecDTO> specsWithProduct = cartMapper.selectSpecsWithProduct(specIds);
+        Map<Long, CartProductSpecDTO> detailMap = specsWithProduct.stream()
+                .collect(Collectors.toMap(CartProductSpecDTO::getSpecId, Function.identity()));
+        // ========== 第三步：极速读取 Redis ==========
+        Map<String, String> redisCartMap = StringRedisConnector.opsForHash().entries(cartKey);
+        // ========== 第四步：内存拼装与状态判定 ==========
+        //TODO：这里redis没有数据库有的就可以去回填，性能是没差多少就是了
+        List<CartItem> cartItems = dbCartList.stream()
+                // 【核心逻辑】：只保留在 detailMap 中能找到的商品（查不到的直接剔除）
+                .filter(cart -> detailMap.containsKey(cart.getSpecId()))
+                .map(cart -> {
+                    CartProductSpecDTO detail = detailMap.get(cart.getSpecId());
+                    // 1. 处理 Redis 数量降级
+                    String hashKey = RedisKeyGenerator.cartHashKey(cart.getProductId(), cart.getSpecId());
+                    Object redisQuantity = redisCartMap.get(hashKey);
+                    int finalQuantity = (redisQuantity != null)
+                            ? Integer.parseInt(redisQuantity.toString())
+                            : cart.getQuantity();
+                    // 2. 使用 MapStruct 组装基础数据
+                    CartItem item = copyMapper.toCartItem(cart,detail);
+                    item.setQuantity(finalQuantity); // 覆盖为最新数量
+                    return item;
+                })
+                .collect(Collectors.toList());
+        return Result.success(cartItems);
     }
 }

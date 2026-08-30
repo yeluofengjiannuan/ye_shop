@@ -7,4 +7,6 @@ import com.itxindeshang.pojo.entity.Cart;
 
 public interface CartService extends IService<Cart> {
     Result<?> addCart(CartProductDTO cartProductDTO);
+
+    Result getCartList();
 }
