@@ -1,26 +1,21 @@
 package com.itxindeshang.service.impl;
 
-import com.baomidou.mybatisplus.core.assist.ISqlRunner;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.itxindeshang.common.constant.DataConstant;
 import com.itxindeshang.common.constant.MessageConstant;
 import com.itxindeshang.common.mapstruct.CopyMapper;
 import com.itxindeshang.common.result.Result;
 import com.itxindeshang.context.BaseContext;
-import com.itxindeshang.infrastructure.redis.connect.RedisConnector;
 import com.itxindeshang.infrastructure.redis.connect.StringRedisConnector;
 import com.itxindeshang.infrastructure.redis.generator.RedisKeyGenerator;
 import com.itxindeshang.infrastructure.redis.properties.RedisCacheTtlProperties;
 import com.itxindeshang.mapper.CartMapper;
-import com.itxindeshang.mapper.ProductMapper;
 import com.itxindeshang.pojo.dto.CartProductDTO;
 import com.itxindeshang.pojo.dto.CartProductSpecDTO;
 import com.itxindeshang.pojo.dto.UpdateCartQuantityDTO;
 import com.itxindeshang.pojo.entity.Cart;
 import com.itxindeshang.pojo.entity.CartItem;
-import com.itxindeshang.pojo.entity.Product;
-import com.itxindeshang.pojo.entity.ProductSpec;
 import com.itxindeshang.service.CartService;
 import jakarta.annotation.Resource;
 import org.redisson.api.RLock;
@@ -33,7 +28,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static jodd.util.ThreadUtil.sleep;
 
 @Service
 public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements CartService {
@@ -59,6 +53,7 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
      * @return
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Result<?> addCart(CartProductDTO cartProductDTO) {
         //TODO:异步到库，结算时强制save到库
         String userId = BaseContext.getUserId();
@@ -133,7 +128,7 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
             return Result.error(MessageConstant.DATA_ERROR);//TODO:商品不存在
         }
         // 第一次加购时，这里会返回 null，我们把它当作 0 处理，完美兼容！
-        Integer dbQuantity = cartMapper.getCartQuentityOnly(userId, productId, specId);
+        Integer dbQuantity = cartMapper.getCartQuantityOnly(userId, productId, specId);
         int currentQuantity = (dbQuantity != null) ? dbQuantity : 0;
 
         // 将 DB 旧数据与前端增量合并，原子写入 Redis
@@ -151,7 +146,7 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
                     .specId(specId)
                     .quantity(quantity)
                     .productId(productId)
-                    .checked(0)//TODO:常量设置
+                    .checked(DataConstant.ZERO)
                     .build();
             save(cart);
         }

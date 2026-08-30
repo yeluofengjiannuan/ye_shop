@@ -12,7 +12,7 @@ import java.util.Set;
 
 @Mapper
 public interface CartMapper extends BaseMapper<Cart> {
-    Integer getCartQuentityOnly(@Param("userId") String userId,
+    Integer getCartQuantityOnly(@Param("userId") String userId,
                             @Param("productId") Long productId,
                             @Param("specId") Long specId);
 
