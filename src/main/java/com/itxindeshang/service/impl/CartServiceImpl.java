@@ -25,6 +25,7 @@ import jakarta.annotation.Resource;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -201,5 +202,24 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
                 })
                 .collect(Collectors.toList());
         return Result.success(cartItems);
+    }
+
+    /**
+     * 清空购物车
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Result clearCart() {
+        //TODO:后期看看有没有并发风险
+        String userId = BaseContext.getUserId();
+        String cartKey = RedisKeyGenerator.cartKey(userId);
+        StringRedisConnector.delete(cartKey);
+        boolean isRemoved = lambdaUpdate()
+                .eq(Cart::getUserId, userId)
+                .remove();
+        if (!isRemoved) {
+            throw new RuntimeException("清空购物车数据库操作失败，事务已回滚");
+        }
+        return Result.success();
     }
 }

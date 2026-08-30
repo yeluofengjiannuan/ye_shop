@@ -33,4 +33,12 @@ public class CartController {
     public Result getCartList() {
         return cartService.getCartList();
     }
+
+    /**
+     * 清空购物车
+     */
+    @DeleteMapping("/clear")
+    public Result clearCart() {
+        return cartService.clearCart();
+    }
 }

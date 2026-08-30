@@ -9,4 +9,6 @@ public interface CartService extends IService<Cart> {
     Result<?> addCart(CartProductDTO cartProductDTO);
 
     Result getCartList();
+
+    Result clearCart();
 }
