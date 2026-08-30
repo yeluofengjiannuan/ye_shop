@@ -16,6 +16,7 @@ import com.itxindeshang.mapper.CartMapper;
 import com.itxindeshang.mapper.ProductMapper;
 import com.itxindeshang.pojo.dto.CartProductDTO;
 import com.itxindeshang.pojo.dto.CartProductSpecDTO;
+import com.itxindeshang.pojo.dto.UpdateCartQuantityDTO;
 import com.itxindeshang.pojo.entity.Cart;
 import com.itxindeshang.pojo.entity.CartItem;
 import com.itxindeshang.pojo.entity.Product;
@@ -36,6 +37,8 @@ import static jodd.util.ThreadUtil.sleep;
 
 @Service
 public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements CartService {
+
+    //TODO：购物车库存问题看后续是全在order模块处理吗
 
     @Resource
     private RedisCacheTtlProperties redisCacheTtlProperties;
@@ -220,6 +223,37 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
         if (!isRemoved) {
             throw new RuntimeException("清空购物车数据库操作失败，事务已回滚");
         }
+        return Result.success();
+    }
+    /**
+     * 修改购物车商品数量
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Result updateCartQuantity(UpdateCartQuantityDTO updateCartQuantityDTO) {
+        String userId = BaseContext.getUserId();
+        Long cartId = updateCartQuantityDTO.getCartId();
+        Integer newQuantity = updateCartQuantityDTO.getQuantity();
+        // 1. 查库校验（防止修改不存在的商品，或校验库存）
+        Cart cart = lambdaQuery()
+                .eq(Cart::getId, cartId)
+                .eq(Cart::getUserId, userId) // 【核心安全】：防止越权修改别人的购物车
+                .one();
+        if (cart == null) {
+            return Result.error(MessageConstant.DATA_ERROR);
+        }
+        boolean updated = lambdaUpdate()
+                .eq(Cart::getId, cartId)
+                .set(Cart::getQuantity, newQuantity)
+                .update();
+        if (!updated) {
+            throw new RuntimeException("修改购物车数量失败，事务已回滚");
+        }
+        String cartKey = RedisKeyGenerator.cartKey(userId);
+        String cartHashKey = RedisKeyGenerator.cartHashKey(cart.getProductId(), cart.getSpecId());
+
+        StringRedisConnector.opsForHash().put(cartKey, cartHashKey, String.valueOf(newQuantity));
+
         return Result.success();
     }
 }

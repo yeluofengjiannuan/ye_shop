@@ -2,6 +2,7 @@ package com.itxindeshang.controller.user;
 
 import com.itxindeshang.common.result.Result;
 import com.itxindeshang.pojo.dto.CartProductDTO;
+import com.itxindeshang.pojo.dto.UpdateCartQuantityDTO;
 import com.itxindeshang.pojo.entity.Cart;
 import com.itxindeshang.service.CartService;
 import io.grpc.internal.ClientStream;
@@ -40,5 +41,13 @@ public class CartController {
     @DeleteMapping("/clear")
     public Result clearCart() {
         return cartService.clearCart();
+    }
+
+    /**
+     * 修改购物车商品数量
+     */
+    @PutMapping("/updateQuantity")
+    public Result updateQuantity(UpdateCartQuantityDTO updateCartQuantityDTO) {
+        return cartService.updateCartQuantity(updateCartQuantityDTO);
     }
 }
