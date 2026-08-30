@@ -126,7 +126,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
                 .setSql("stock = (SELECT IFNULL(SUM(stock), 0) FROM product_spec WHERE product_id = " + productId + ")")
                 // 让数据库自己求最低规格价
                 .setSql("price = (SELECT IFNULL(MIN(price), 0) FROM product_spec WHERE product_id = " + productId + ")")
-                .setSql("enterprice_prise = (SELECT IFNULL(MIN(enterprise_price), 0) FROM product_spec WHERE product_id = " + productId + ")")
+                .setSql("enterprise_price = (SELECT IFNULL(MIN(enterprise_price), 0) FROM product_spec WHERE product_id = " + productId + ")")
                 .update();
         return Result.success(productId);
     }
