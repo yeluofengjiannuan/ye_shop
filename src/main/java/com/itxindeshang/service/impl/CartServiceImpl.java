@@ -256,4 +256,37 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
 
         return Result.success();
     }
+
+    /**
+     * 批量删除购物车商品
+     * @param ids 购物车id
+     * @return
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Result<?> batchDelete(List<Long> ids) {
+        String userId = BaseContext.getUserId();
+        // 查库获取要删除的购物车记录
+        List<Cart> cartsToDelete = lambdaQuery()
+                .in(Cart::getId, ids)
+                .eq(Cart::getUserId, userId)
+                .list();
+        if (CollectionUtils.isEmpty(cartsToDelete)) {
+            return Result.success();
+        }
+        Set<String> hashKeysToDelete =cartsToDelete.stream()
+                .map(cart -> RedisKeyGenerator.cartHashKey(cart.getProductId(), cart.getSpecId()))
+                .collect(Collectors.toSet());
+        String cartKey = RedisKeyGenerator.cartKey(userId);
+        StringRedisConnector.opsForHash().delete(cartKey, hashKeysToDelete.toArray());
+        // 批量删除数据库
+        List<Long> validCartIds = cartsToDelete.stream().map(Cart::getId).collect(Collectors.toList());
+        boolean isRemoved = lambdaUpdate()
+                .in(Cart::getId, validCartIds)
+                .remove();
+        if (!isRemoved) {
+            throw new RuntimeException("批量删除购物车数据库操作失败，事务已回滚");
+        }
+        return Result.success();
+    }
 }

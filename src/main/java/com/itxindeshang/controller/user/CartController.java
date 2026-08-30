@@ -9,6 +9,8 @@ import io.grpc.internal.ClientStream;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 
 /**
  * 购物车管理
@@ -49,5 +51,15 @@ public class CartController {
     @PutMapping("/updateQuantity")
     public Result updateQuantity(UpdateCartQuantityDTO updateCartQuantityDTO) {
         return cartService.updateCartQuantity(updateCartQuantityDTO);
+    }
+
+    /**
+     * 批量删除购物车商品
+     * @param ids 购物车id
+     * @return
+     */
+    @DeleteMapping("/deleteBatch")
+    public Result<?> batchDeleteCart(@RequestParam("ids") List<Long> ids) {
+        return cartService.batchDelete(ids);
     }
 }

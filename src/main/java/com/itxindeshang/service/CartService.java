@@ -6,6 +6,8 @@ import com.itxindeshang.pojo.dto.CartProductDTO;
 import com.itxindeshang.pojo.dto.UpdateCartQuantityDTO;
 import com.itxindeshang.pojo.entity.Cart;
 
+import java.util.List;
+
 public interface CartService extends IService<Cart> {
     Result<?> addCart(CartProductDTO cartProductDTO);
 
@@ -14,4 +16,6 @@ public interface CartService extends IService<Cart> {
     Result clearCart();
 
     Result updateCartQuantity(UpdateCartQuantityDTO updateCartQuantityDTO);
+
+    Result<?> batchDelete(List<Long> ids);
 }
