@@ -130,7 +130,7 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
                                         Integer quantity, String cartKey, String cartHashKey) {
         Integer productStatus = cartMapper.checkProductStatus(productId, specId);
         if (productStatus == null || productStatus != 1) {
-            return Result.error("商品不存在或已下架");
+            return Result.error(MessageConstant.DATA_ERROR);//TODO:商品不存在
         }
         // 第一次加购时，这里会返回 null，我们把它当作 0 处理，完美兼容！
         Integer dbQuantity = cartMapper.getCartQuentityOnly(userId, productId, specId);
@@ -221,7 +221,7 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
                 .eq(Cart::getUserId, userId)
                 .remove();
         if (!isRemoved) {
-            throw new RuntimeException("清空购物车数据库操作失败，事务已回滚");
+            throw new RuntimeException(MessageConstant.CART_CLEAR_DB_FAILED);
         }
         return Result.success();
     }
@@ -247,7 +247,7 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
                 .set(Cart::getQuantity, newQuantity)
                 .update();
         if (!updated) {
-            throw new RuntimeException("修改购物车数量失败，事务已回滚");
+            throw new RuntimeException(MessageConstant.CART_UPDATE_QTY_FAILED);
         }
         String cartKey = RedisKeyGenerator.cartKey(userId);
         String cartHashKey = RedisKeyGenerator.cartHashKey(cart.getProductId(), cart.getSpecId());
@@ -285,7 +285,7 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
                 .in(Cart::getId, validCartIds)
                 .remove();
         if (!isRemoved) {
-            throw new RuntimeException("批量删除购物车数据库操作失败，事务已回滚");
+            throw new RuntimeException(MessageConstant.CART_DELETE_BATCH_FAILED);
         }
         return Result.success();
     }

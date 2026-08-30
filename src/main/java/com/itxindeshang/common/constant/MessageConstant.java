@@ -29,4 +29,8 @@ public class MessageConstant {
     public static final String PRODUCT_IMAGE_OR_SPEC_EMPTY = "图片或商品规格不得为空";
     public static final String PRODUCT_NOT_FOUND = "未找到改商品";
     public static final String SYSTEM_BUSY = "系统繁忙";
+    //======================购物车==========================================
+    public static final String CART_CLEAR_DB_FAILED = "清空购物车失败，请重试";
+    public static final String CART_UPDATE_QTY_FAILED = "修改数量失败，请重试";
+    public static final String CART_DELETE_BATCH_FAILED = "批量删除失败，请重试";
 }
