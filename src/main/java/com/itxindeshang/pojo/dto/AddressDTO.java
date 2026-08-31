@@ -9,7 +9,7 @@ import lombok.Data;
 @Data
 public class AddressDTO {
 
-    private String id;
+    private Long id;
     @Size(min = 1, max = 20, message = "收件人姓名必须在1~20个字符之间")
     private String receiver;
 
