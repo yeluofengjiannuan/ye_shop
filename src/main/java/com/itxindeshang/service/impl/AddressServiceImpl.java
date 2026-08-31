@@ -46,6 +46,20 @@ public class AddressServiceImpl extends ServiceImpl<AddressMapper, Address> impl
         }
         return Result.success(address);
     }
+
+    /**
+     * 查询地址列表
+     */
+    @Override
+    public Result<List<Address>> getAddressList() {
+        String userId = BaseContext.getUserId();
+        List<Address> list = lambdaQuery()
+                .eq(Address::getUserId, userId)
+                .orderByDesc(Address::getUpdateTime)
+                .list();
+        return Result.success(list);
+    }
+
     /**
      * 保证只有一个默认地址
      * @param userId 用户id

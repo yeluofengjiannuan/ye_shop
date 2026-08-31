@@ -6,10 +6,9 @@ import com.itxindeshang.pojo.entity.Address;
 import com.itxindeshang.service.AddressService;
 import jakarta.annotation.Resource;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/address")
@@ -23,5 +22,12 @@ public class AddressController {
     @PostMapping("/add")
     public Result<Address> insertAddress(@RequestBody @Validated AddressDTO addressDTO) {
         return addressService.insert(addressDTO);
+    }
+    /**
+     * 查询地址
+     */
+    @GetMapping("/list")
+    public Result<List<Address>> getAddressList() {
+        return addressService.getAddressList();
     }
 }
