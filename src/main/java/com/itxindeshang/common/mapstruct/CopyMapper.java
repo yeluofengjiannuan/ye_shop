@@ -1,10 +1,7 @@
 package com.itxindeshang.common.mapstruct;
 
 import com.itxindeshang.pojo.UserInfo;
-import com.itxindeshang.pojo.dto.CartProductSpecDTO;
-import com.itxindeshang.pojo.dto.CategoryDTO;
-import com.itxindeshang.pojo.dto.ProductDTO;
-import com.itxindeshang.pojo.dto.ProductUpdateDTO;
+import com.itxindeshang.pojo.dto.*;
 import com.itxindeshang.pojo.entity.*;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -37,4 +34,6 @@ public interface CopyMapper {
     @Mapping(source = "detail.productName", target = "productName")
     @Mapping(source = "detail.productImage", target = "productImage")
     CartItem toCartItem(Cart cart, CartProductSpecDTO detail);
+
+    Address addressDTOToAddress(AddressDTO addressDTO);
 }
