@@ -115,7 +115,6 @@ public class AddressServiceImpl extends ServiceImpl<AddressMapper, Address> impl
 
         return Result.success();
     }
-
     /**
      * 将指定地址设为默认
      */
@@ -133,4 +132,48 @@ public class AddressServiceImpl extends ServiceImpl<AddressMapper, Address> impl
                 .update();
     }
 
+    /**
+     * 更新地址
+     */
+    @Override
+    public Result<Address> updateAddress(AddressDTO addressDTO) {
+        String userId = BaseContext.getUserId();
+        Long addressId = addressDTO.getId();
+
+        // 1. 【安全防线】：根据 ID 和 userId 联合查询，防止越权修改
+        Address existingAddress = lambdaQuery()
+                .eq(Address::getId, addressId)
+                .eq(Address::getUserId, Long.valueOf(userId))
+                .one();
+
+        if (existingAddress == null) {
+            return Result.error(MessageConstant.DATA_ERROR);
+        }
+
+        // API防篡改
+        // 如果当前修改的本来就是默认地址，但 DTO 里被篡改成了非默认
+        // 直接在内存中把 DTO 改回默认篡改无效化
+        if (existingAddress.getIsDefault() == CommonDefault.DEFAULT
+                && addressDTO.getIsDefault() == CommonDefault.NO_DEFAULT) {
+            // 强行覆盖 DTO 的值
+            addressDTO.setIsDefault(CommonDefault.DEFAULT);
+        }
+
+        // 3. 【核心逻辑】：如果前端要求设为默认，必须保证只有一个默认地址
+        if (addressDTO.getIsDefault() == CommonDefault.DEFAULT) {
+            AddressServiceImpl proxy = (AddressServiceImpl) AopContext.currentProxy();
+            proxy.makeOnlyHaveOneDefault(addressDTO, userId);
+        }
+
+        // 4. 实体转换并更新
+        Address address = copyMapper.addressDTOToAddress(addressDTO);
+        address.setUserId(Long.valueOf(userId));
+
+        boolean isSuccess = updateById(address);
+        if (!isSuccess) {
+            throw new RuntimeException(MessageConstant.SQL_MESSAGE_SAVE_ERROR);
+        }
+
+        return Result.success();
+    }
 }
