@@ -11,7 +11,6 @@ import com.itxindeshang.pojo.entity.Address;
 import com.itxindeshang.pojo.enums.CommonDefault;
 import com.itxindeshang.service.AddressService;
 import jakarta.annotation.Resource;
-import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,8 +28,6 @@ public class AddressServiceImpl extends ServiceImpl<AddressMapper, Address> impl
     
     /**
      * 新增地址
-     * @param addressDTO
-     * @return
      */
     @Override
     public Result<Address> insert(AddressDTO addressDTO) {
@@ -59,7 +56,6 @@ public class AddressServiceImpl extends ServiceImpl<AddressMapper, Address> impl
                 .list();
         return Result.success(list);
     }
-
     /**
      * 保证只有一个默认地址
      * @param userId 用户id
@@ -76,4 +72,65 @@ public class AddressServiceImpl extends ServiceImpl<AddressMapper, Address> impl
                     .update();
         }
     }
+    /**
+     * 删除地址
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Result<?> deleteAddress(Long addressId) {
+        String userId = BaseContext.getUserId();
+
+        // 防止越权删除
+        Address address = lambdaQuery()
+                .eq(Address::getId, addressId)
+                .eq(Address::getUserId, Long.valueOf(userId))
+                .one();
+
+        if (address == null) {
+            return Result.error(MessageConstant.DATA_ERROR);
+        }
+
+        //如果删除的是默认地址最新的一条非默认地址提升为默认
+        if (address.getIsDefault() == CommonDefault.DEFAULT) {
+            // 找到该用户最新创建的一条非默认地址
+            Address newDefault = lambdaQuery()
+                    .eq(Address::getUserId, Long.valueOf(userId))
+                    .ne(Address::getId, addressId) // 排除掉当前要删除的
+                    .orderByDesc(Address::getUpdateTime)
+                    .last("LIMIT 1")
+                    .one();
+
+            if (newDefault != null) {
+                // 更新新默认地址（复用你的事务代理，保证绝对安全）
+                AddressServiceImpl proxy = (AddressServiceImpl) AopContext.currentProxy();
+                proxy.updateDefaultAddress(newDefault.getId());
+            }
+        }
+
+        //物理删除当前地址
+        boolean isSuccess = removeById(addressId);
+        if (!isSuccess) {
+            throw new RuntimeException(MessageConstant.SQL_MESSAGE_DELETE_ERROR);
+        }
+
+        return Result.success();
+    }
+
+    /**
+     * 将指定地址设为默认
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void updateDefaultAddress(Long addressId) {
+        // 1. 先把该用户的所有地址取消默认
+        lambdaUpdate()
+                .eq(Address::getUserId, BaseContext.getUserId())
+                .set(Address::getIsDefault, CommonDefault.NO_DEFAULT.getNumber())
+                .update();
+        // 2. 把目标地址设为默认
+        lambdaUpdate()
+                .eq(Address::getId, addressId)
+                .set(Address::getIsDefault, CommonDefault.DEFAULT.getNumber())
+                .update();
+    }
+
 }

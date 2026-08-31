@@ -11,4 +11,6 @@ public interface AddressService extends IService<Address> {
     Result<Address> insert(AddressDTO addressDTO);
 
     Result<List<Address>> getAddressList();
+
+    Result<?> deleteAddress(Long addressId);
 }

@@ -30,4 +30,11 @@ public class AddressController {
     public Result<List<Address>> getAddressList() {
         return addressService.getAddressList();
     }
+    /**
+     * 删除地址
+     */
+    @DeleteMapping("/delete")
+    public Result<?> deleteAddress( Long addressId) {
+        return addressService.deleteAddress(addressId);
+    }
 }
