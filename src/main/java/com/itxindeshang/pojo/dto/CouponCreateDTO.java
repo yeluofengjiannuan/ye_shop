@@ -54,7 +54,7 @@ public class CouponCreateDTO {
     /**
      * 领取后有效天数（validMode=2时必填）
      */
-    private Integer receiveValidDays;
+    private Integer validDays;
 
     @NotNull(message = "单人限领张数不能为空")
     @Min(value = 1, message = "单人限领张数至少为1")

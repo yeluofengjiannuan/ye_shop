@@ -36,4 +36,7 @@ public interface CopyMapper {
     CartItem toCartItem(Cart cart, CartProductSpecDTO detail);
 
     Address addressDTOToAddress(AddressDTO addressDTO);
+
+
+    Coupon couponCreateDTOToCoupon(CouponCreateDTO couponCreateDTO);
 }

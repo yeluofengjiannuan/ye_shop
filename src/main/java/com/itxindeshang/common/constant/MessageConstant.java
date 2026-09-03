@@ -33,4 +33,17 @@ public class MessageConstant {
     public static final String CART_CLEAR_DB_FAILED = "清空购物车失败，请重试";
     public static final String CART_UPDATE_QTY_FAILED = "修改数量失败，请重试";
     public static final String CART_DELETE_BATCH_FAILED = "批量删除失败，请重试";
+    //=========================优惠券========================================
+    public static final String VALID_MODE_FIXED_TIME_REQUIRED = "固定时间模式下，开始时间和结束时间不能为空";
+    public static final String VALID_END_BEFORE_START = "结束时间不能早于开始时间";
+    public static final String VALID_MODE_RECEIVE_DAYS_REQUIRED = "领券后有效天数必须大于0";
+    public static final String FULL_REDUCTION_CONDITION_REQUIRED = "满减券的门槛金额必须大于0";
+    public static final String DISCOUNT_RATE_INVALID = "折扣率必须在0到1之间";
+    public static final String NO_THRESHOLD_DISCOUNT_REQUIRED = "无门槛券的优惠金额必须大于0";
+    public static final String COUPON_NOT_FOUND = "优惠券不存在";
+    public static final String COUPON_NOT_AVAILABLE = "该优惠券不可用";
+    public static final String COUPON_EXPIRED = "优惠券已过期";
+    public static final String COUPON_ALREADY_USED = "优惠券已被使用";
+
+
 }
