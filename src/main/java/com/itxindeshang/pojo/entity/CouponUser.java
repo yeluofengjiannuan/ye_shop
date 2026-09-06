@@ -42,16 +42,46 @@ public class CouponUser implements Serializable {
     private Long couponId;
 
     /**
-     * 状态：0未使用 1已锁定 2已使用 3已过期
+     * 总领取数量
      */
-    @TableField("status")
-    private Integer status;
+    @TableField("quantity")
+    private Integer quantity;
 
     /**
-     * 关联订单ID
+     * 未使用数量
      */
-    @TableField("order_id")
-    private Long orderId;
+    @TableField("unused_count")
+    private Integer unusedCount;
+
+    /**
+     * 已锁定数量（下单时锁定，未支付）
+     */
+    @TableField("locked_count")
+    private Integer lockedCount;
+
+    /**
+     * 已使用数量
+     */
+    @TableField("used_count")
+    private Integer usedCount;
+
+    /**
+     * 已过期数量
+     */
+    @TableField("expired_count")
+    private Integer expiredCount;
+
+    /**
+     * 已作废数量（运营手动作废）
+     */
+    @TableField("invalidated_count")
+    private Integer invalidatedCount;
+
+    /**
+     * 已退款数量
+     */
+    @TableField("refunded_count")
+    private Integer refundedCount;
 
     /**
      * 过期时间
