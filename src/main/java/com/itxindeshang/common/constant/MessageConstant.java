@@ -44,6 +44,12 @@ public class MessageConstant {
     public static final String COUPON_NOT_AVAILABLE = "该优惠券不可用";
     public static final String COUPON_EXPIRED = "优惠券已过期";
     public static final String COUPON_ALREADY_USED = "优惠券已被使用";
-
-
+    public static final String COUPON_USER_RECEIVE_ERROR="用户获取优惠券数量异常,请重试";
+    public static final String COUPON_NO_SHELF = "优惠券未上架";
+    public static final String ACTIVITY_NOT_START ="活动尚未开始";
+    public static final String ACTIVITY_END ="活动已结束";
+    public static final String COUPON_ERROR = "优惠券配置异常";
+    public static final String COUPON_STOCK_NULL = "库存不足";
+    public static final String COUPON_HOLD = "优惠券已领取";
+    public static final String SYNC_SAVE_ERROR = "异步存库失败等待重试";
 }
