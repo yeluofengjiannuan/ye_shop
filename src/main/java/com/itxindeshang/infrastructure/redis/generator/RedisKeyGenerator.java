@@ -113,4 +113,59 @@ public class RedisKeyGenerator {
     public static String lockCart(String userId, Long specId) {
         return RedisConstant.LOCK +RedisConstant.CART +userId +":"+ specId;
     }
+
+    /**
+     * couponStockKey
+     * coupon: + stock: + "{" +couponId+ "}"
+     * @param couponId 优惠券id
+     * @return
+     */
+    public static String couponStockKey(Long couponId) {
+        return RedisConstant.PREFIX_COUPON + RedisConstant.STOCK + "{" + couponId + "}";
+    }
+
+    /**
+     * couponStockKey
+     * coupon: + received: + "{" +couponId+ "}"
+     * @param couponId 优惠券id
+     * @return
+     */
+    public static String couponReceivedKey(Long couponId) {
+        return RedisConstant.PREFIX_COUPON + RedisConstant.RECEIVED + "{" + couponId + "}";
+    }
+
+    /**
+     * couponStockKey
+     * coupon: + receiveQty: + "{" +couponId+ "}"
+     * @param couponId 优惠券id
+     * @return
+     */
+    public static String couponReceiveQtyKey(Long couponId) {
+        return RedisConstant.PREFIX_COUPON + RedisConstant.RECEIVE_QTY + "{" + couponId + "}";
+    }
+
+    /**
+     * couponStockKey
+     * coupon: + pending: + "{" +couponId+ "}"
+     * @param couponId 优惠券id
+     * @return
+     */
+    public static String couponPendingKey(Long couponId) {
+        return RedisConstant.PREFIX_COUPON + RedisConstant.PENDING + "{" + couponId + "}";
+    }
+
+    /**
+     * couponStockKey
+     * coupon: + unablePending: + "{" +couponId+ "}"
+     * @param couponId 优惠券id
+     * @return
+     */
+    public static String couponUnablePendingKey(Long couponId) {
+        return RedisConstant.PREFIX_COUPON + RedisConstant.UNABLE_PENDING + "{" + couponId + "}";
+    }
+
+    public static String couponLock(Long couponId) {
+        return RedisConstant.PREFIX_COUPON+RedisConstant.LOCK+couponId;
+    }
+
 }

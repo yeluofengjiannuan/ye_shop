@@ -1,4 +1,4 @@
-package com.itxindeshang.infrastructure.redis.confing;
+package com.itxindeshang.infrastructure.redis.config;
 
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;

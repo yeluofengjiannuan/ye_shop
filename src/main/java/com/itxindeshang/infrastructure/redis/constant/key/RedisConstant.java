@@ -19,5 +19,11 @@ public class RedisConstant {
     public static final String LOCK ="lock:";
     public static final String CART = "cart:";
     public static final String PREFIX_SPEC = "spec:";
+    public static final String PREFIX_COUPON = "coupon:";
+    public static final String STOCK = "stock:";
+    public static final String RECEIVE_QTY = "receiveQty:";
+    public static final String RECEIVED = "received:";
+    public static final String PENDING ="pending:";
+    public static final String UNABLE_PENDING="unablePending:";
 }
 

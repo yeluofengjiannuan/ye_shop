@@ -1,7 +1,7 @@
 package com.itxindeshang.infrastructure.redis.properties;
 
 
-import com.itxindeshang.infrastructure.redis.confing.YamlPropertySourceFactory;
+import com.itxindeshang.infrastructure.redis.config.YamlPropertySourceFactory;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 

@@ -1,4 +1,4 @@
-package com.itxindeshang.infrastructure.redis.confing;
+package com.itxindeshang.infrastructure.redis.config;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.DeserializationFeature;
