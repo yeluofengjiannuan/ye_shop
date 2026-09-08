@@ -28,7 +28,15 @@ public class CouponController {
      * 用户领取优惠券
      */
     @PostMapping("/coupon/receive")
-    public Result<CouponUser> receiveCoupon(@RequestParam("couponId") Long couponId,@RequestParam("quantity") Integer quantity) {
-        return couponService.receiveCoupon(couponId,quantity);
+    public Result<CouponUser> receiveCoupon(@RequestParam("couponId") Long couponId, @RequestParam("quantity") Integer quantity) {
+        return couponService.receiveCoupon(couponId, quantity);
+    }
+
+    /**
+     * 优惠券上架
+     */
+    @PutMapping("/admin/coupon/onShelf")
+    public Result<?> onShelfCoupon(Long couponId) {
+        return couponService.onShlef(couponId);
     }
 }

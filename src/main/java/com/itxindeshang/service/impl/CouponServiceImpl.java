@@ -520,7 +520,6 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
             if (ArrayUtils.isNotEmpty(userIds)) {
                 stringRedisTemplate.opsForSet().add(receivedKey, userIds);
             }
-            ;
         } else {
             if (receivedUsers != null && !receivedUsers.isEmpty()) {
                 // TODO: 数据量大时改为分批查询写入
@@ -669,4 +668,37 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
             RedisConnector.opsForZSet().add(key, couponUserId, timestamp);
         }
     }
+
+    /**
+     * 上架优惠券活动
+     * @param couponId 优惠券id
+     * @return
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Result<?> onShlef(Long couponId) {
+        Coupon coupon = getById(couponId);
+        if (coupon == null) {
+            return Result.error("优惠券不存在");
+        }
+        if (coupon.getStatus().equals(1)) {
+            return Result.error("活动已上架");
+        }
+        if (coupon.getValidEnd() == null || coupon.getValidEnd().isAfter(LocalDateTime.now())) {
+            lambdaUpdate().set(Coupon::getStatus, 1).eq(Coupon::getId,couponId).update();
+            coupon.setStatus(1);
+            List<Coupon> couponNew = new ArrayList<>(1 );
+            couponNew.add(coupon);
+            String couponDetailKey = RedisKeyGenerator.couponDetail(coupon.getId());
+            RedisConnector.setHashObject(couponDetailKey,coupon);
+            String stockKey = RedisKeyGenerator.couponStockKey(couponId);
+            stringRedisTemplate.opsForValue().setIfAbsent(stockKey, String.valueOf(coupon.getTotalQty()));
+            if (CouponValidModeEnum.FIXED_TIME.getCode().equals(coupon.getValidMode())) {
+                updateCouponFixedTimeListCache(couponNew);
+            }
+            return Result.success();
+        }
+        return Result.error("无法上架");
+    }
+
 }

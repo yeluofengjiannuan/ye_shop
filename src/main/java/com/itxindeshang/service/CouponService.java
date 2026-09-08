@@ -17,4 +17,6 @@ public interface CouponService extends IService<Coupon> {
     void syncSave(CouponReceiveMessage message);
 
     void updateCouponRedisCache();
+
+    Result<?> onShlef(Long couponId);
 }
