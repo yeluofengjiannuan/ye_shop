@@ -25,5 +25,11 @@ public class RedisConstant {
     public static final String RECEIVED = "received:";
     public static final String PENDING ="pending:";
     public static final String UNABLE_PENDING="unablePending:";
+    public static final String COUPON_FIXED_TIME_UN_BEGIN ="couponFixedTimeUnBegin" ;
+    public static final String USE_STATUS = "useStatus:";
+    public static final String ID_LIST="idList";
+    public static final String COUPON_FIXED_TIME_IN_PROGRESS = "couponFixedTimeInProgress";
+    public static final String AFTER_RECEIVE_TIME_IN_PROGRESS = "afterReceiveTimeInProgress";
+    public static final String ACTIVITY_UN_BEGIN = "activityUnBegin";
 }
 

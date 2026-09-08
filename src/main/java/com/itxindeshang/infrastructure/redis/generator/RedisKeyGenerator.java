@@ -1,8 +1,6 @@
 package com.itxindeshang.infrastructure.redis.generator;
 
-import com.itxindeshang.infrastructure.redis.connect.RedisConnector;
 import com.itxindeshang.infrastructure.redis.constant.key.RedisConstant;
-import org.springframework.boot.autoconfigure.cache.CacheProperties;
 
 import java.time.LocalDate;
 
@@ -10,6 +8,7 @@ import java.time.LocalDate;
  * Redis key 拼接器
  */
 public class RedisKeyGenerator {
+
 
     /**
      * 用户登录信息
@@ -168,4 +167,45 @@ public class RedisKeyGenerator {
         return RedisConstant.PREFIX_COUPON+RedisConstant.LOCK+couponId;
     }
 
+    /**
+     * couponDetail
+     * coupon: +  detail: +couponId
+     * @param couponId 优惠券id
+     * @return
+     */
+    public static String couponDetail(Long couponId) {
+        return RedisConstant.PREFIX_COUPON +RedisConstant.DETAIL +couponId;
+    }
+
+    /**
+     * couponFixedTimeUnBeginZSet
+     * coupon: + couponFixedTimeUnBegin
+     */
+    public static String couponFixedTimeUnBeginZSet() {
+        return RedisConstant.PREFIX_COUPON + RedisConstant.COUPON_FIXED_TIME_UN_BEGIN;
+    }
+
+    /**
+     * couponFixedTimeInProgressZSet
+     * coupon: + couponFixedTimeInProgress
+     */
+    public static String couponFixedTimeInProgressZSet() {
+        return RedisConstant.PREFIX_COUPON + RedisConstant.COUPON_FIXED_TIME_IN_PROGRESS;
+    }
+
+    /**
+     * couponAfterReceiveTimeInProgressZSet
+     * coupon: + couponAfterReceiveTimeInProgress
+     */
+    public static String couponAfterReceiveTimeInProgressZSet() {
+        return RedisConstant.PREFIX_COUPON + RedisConstant.AFTER_RECEIVE_TIME_IN_PROGRESS;
+    }
+
+    /**
+     * couponActivityUnBegin
+     * coupon: + activityUnBegin
+     */
+    public static String couponActivityUnBegin() {
+        return RedisConstant.PREFIX_COUPON  +RedisConstant.ACTIVITY_UN_BEGIN;
+    }
 }

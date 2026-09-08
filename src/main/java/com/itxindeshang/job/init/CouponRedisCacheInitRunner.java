@@ -1,17 +1,16 @@
-package com.itxindeshang.config;
+package com.itxindeshang.job.init;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.itxindeshang.infrastructure.redis.connect.StringRedisConnector;
 import com.itxindeshang.infrastructure.redis.generator.RedisKeyGenerator;
 import com.itxindeshang.mapper.CouponMapper;
 import com.itxindeshang.pojo.entity.Coupon;
-import com.itxindeshang.pojo.entity.CouponReceiveMessage;
-import com.itxindeshang.pojo.entity.CouponUser;
 import com.itxindeshang.service.CouponService;
-import jakarta.annotation.Resource;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Bean;
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -19,21 +18,30 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * 初始化优惠卷缓存
+ */
 @Component
 @Slf4j
-public class CouponConfig {
+@RequiredArgsConstructor
+public class CouponRedisCacheInitRunner implements ApplicationRunner {
 
-    @Resource
-    private CouponMapper couponMapper;
+    private final CouponService couponService;
 
-    @Resource
-    private StringRedisTemplate stringRedisTemplate;
+    private final CouponMapper couponMapper;
 
-    @Bean
-    /**
-     * 活动发布时预热库存到Redis TODO：这个应该也是维护一个zset定时任务
-     */
-    public void warmUp() {
+    private final StringRedisTemplate stringRedisTemplate;
+
+    @Override
+    public void run(ApplicationArguments args) {
+        log.info("初始化 优惠券 redis缓存...");
+        couponService.updateCouponRedisCache();
+//        warmUp();
+        log.info("初始化 优惠券 redis缓存成功...");
+    }
+
+     // 活动发布时预热库存到Redis TODO：这个应该也是维护一个zset定时任务
+   /* public void warmUp() {
         List<Coupon> coupons = couponMapper.selectList(
                 new LambdaQueryWrapper<Coupon>().eq(Coupon::getStatus,1)
                         .gt(Coupon::getValidEnd, LocalDateTime.now())
@@ -55,7 +63,7 @@ public class CouponConfig {
                 log.info("预热优惠券库存成功, couponId={}, stock={}", couponId, coupon.getTotalQty());
             }
         });
-        }
+    }
     // =============================================
     // 计算优惠券剩余有效时间（秒）
     // =============================================
@@ -63,6 +71,5 @@ public class CouponConfig {
         long endTimestamp = coupon.getValidEnd().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
         long now = System.currentTimeMillis();
         return Math.max((endTimestamp - now) / 1000, 0);
-    }
-
+    }*/
 }

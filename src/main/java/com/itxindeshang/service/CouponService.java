@@ -15,4 +15,6 @@ public interface CouponService extends IService<Coupon> {
     Result<CouponUser> receiveCoupon(Long couponId,Integer quantity);
 
     void syncSave(CouponReceiveMessage message);
+
+    void updateCouponRedisCache();
 }

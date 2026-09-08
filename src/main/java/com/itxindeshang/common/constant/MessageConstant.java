@@ -52,4 +52,7 @@ public class MessageConstant {
     public static final String COUPON_STOCK_NULL = "库存不足";
     public static final String COUPON_HOLD = "优惠券已领取";
     public static final String SYNC_SAVE_ERROR = "异步存库失败等待重试";
+    public static final String RELEASE_TIME_REQUIRED = "分发时间不能早于当前时间";
+    public static final String RELEASE_TIME_BEFORE_NOW = "分发时间必须早于有效期开始时间";
+    public static final String USER_LEVEL_ERROR = "用户等级不匹配无法领取";
 }

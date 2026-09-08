@@ -104,6 +104,12 @@ public class SysUser implements Serializable {
     private UserInfo userInfo;
 
     /**
+     * 用户等级：1新人 2普通用户 3会员
+     */
+    @TableField("level")
+    private Integer level;
+
+    /**
      * 首次登录时间
      */
     private LocalDateTime firstLoginTime;

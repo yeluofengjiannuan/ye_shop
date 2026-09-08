@@ -20,6 +20,7 @@ public interface CouponMapper extends BaseMapper<Coupon> {
     int deductStock(@Param("couponId") Long couponId,
                     @Param("perUserQty") Integer perUserQty);
 
-    @Select("SELECT * FROM coupon WHERE status = 1 AND valid_end > NOW()")
+    //FIXME:这里肯定有问题，至少要大于券的发放时间
+    @Select("SELECT * FROM coupon WHERE status = 1 AND valid_end > NOW() AND release_time< NOW()")
     List<Coupon> selectActiveCoupons();
 }

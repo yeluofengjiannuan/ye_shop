@@ -31,6 +31,11 @@ public class UserInfo implements Serializable {
     private String avatar;
 
     /**
+     * 用户等级：1新人 2普通用户 3会员
+     */
+    private Integer level;
+
+    /**
      * 手机号码
      */
     private String phone;
