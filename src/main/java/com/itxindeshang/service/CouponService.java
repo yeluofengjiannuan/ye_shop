@@ -6,11 +6,14 @@ import com.itxindeshang.pojo.dto.CouponCreateDTO;
 import com.itxindeshang.pojo.entity.Coupon;
 import com.itxindeshang.pojo.entity.CouponReceiveMessage;
 import com.itxindeshang.pojo.entity.CouponUser;
+import com.itxindeshang.pojo.vo.CouponUserVO;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
+import java.util.List;
+
 public interface CouponService extends IService<Coupon> {
-    Result<?> saveCouponAdmin(@Valid @NotNull CouponCreateDTO couponCreateDTO);
+    Result<Long> saveCouponAdmin(@Valid @NotNull CouponCreateDTO couponCreateDTO);
 
     Result<CouponUser> receiveCoupon(Long couponId,Integer quantity);
 
@@ -19,4 +22,10 @@ public interface CouponService extends IService<Coupon> {
     void updateCouponRedisCache();
 
     Result<?> onShlef(Long couponId);
+
+    Result<?> offShelf(Long couponId);
+
+    Result<List<Coupon>> showCouponActivityList();
+
+    Result<List<CouponUserVO>> showCouponUserList();
 }

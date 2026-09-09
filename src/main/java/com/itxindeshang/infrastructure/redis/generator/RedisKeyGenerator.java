@@ -13,8 +13,7 @@ public class RedisKeyGenerator {
     /**
      * 用户登录信息
      * login:user: + userId
-     * @param userId
-     * @return
+     * @param userId 用户id
      */
     public static String loginUser(long userId) {
         return RedisConstant.PREFIX_LOGIN + RedisConstant.USER + userId;
@@ -24,7 +23,6 @@ public class RedisKeyGenerator {
     /**
      *刷新 Token
      * login:refresh:token + UUID
-     * @return
      */
     public static String loginRefreshToken(String UUID) {
         return RedisConstant.PREFIX_LOGIN + RedisConstant.REFRESH + RedisConstant.TOKEN + UUID;
@@ -33,7 +31,6 @@ public class RedisKeyGenerator {
     /**
      *  productDetail
      *  product: + detail: + productId
-     * @return
      */
     public static String productDetail(Long productId) {
         return RedisConstant.PREFIX_PRODUCT+ RedisConstant.DETAIL + productId;
@@ -42,7 +39,6 @@ public class RedisKeyGenerator {
     /**
      * productCollection
      *  product: +collection: + productId
-     * @return
      */
     public static String productCollection(Long productId) {
         return RedisConstant.PREFIX_PRODUCT + RedisConstant.COLLECTION +productId;
@@ -51,26 +47,15 @@ public class RedisKeyGenerator {
     /**
      * productView
      * product: +view: + productId + today
-     * @return
      */
     public static String productView(Long productId,Long userId) {
         String date = LocalDate.now().toString();
-        return RedisConstant.PREFIX_PRODUCT +RedisConstant.VIEW + date +":" + userId;
-    }
-
-    /**
-     * productView
-     * product: + view  +productId + date
-     * @return
-     */
-    public static String productView(String productId,Long userId,String date) {
-        return RedisConstant.PREFIX_PRODUCT +RedisConstant.VIEW + date +":" +userId;
+        return RedisConstant.PREFIX_PRODUCT +RedisConstant.VIEW + date +":" +productId+":"+ userId;
     }
 
     /**
      * productViewViewCount
      * product +view+ count: +productId
-     * @return
      */
     public static String productViewCount(Long productId) {
         return RedisConstant.PREFIX_PRODUCT +RedisConstant.VIEW +RedisConstant.COUNT + productId;
@@ -82,10 +67,9 @@ public class RedisKeyGenerator {
 
 
     /**
-     * cartkey
+     * cartKey
      * cart:+user: + userId
      * @param userId 用户id
-     * @return
      */
     public static String cartKey(String userId) {
         return RedisConstant.CART+RedisConstant.USER +userId;
@@ -96,7 +80,6 @@ public class RedisKeyGenerator {
      * product: + productId+, +spec: +specId
      * @param productId 商品id
      * @param specId 规格id
-     * @return
      */
     public static String cartHashKey(Long productId, Long specId) {
         return RedisConstant.PREFIX_PRODUCT+ productId + ","+RedisConstant.PREFIX_SPEC + specId;
@@ -107,7 +90,6 @@ public class RedisKeyGenerator {
      * lock: +cart: +userId+:+ specId
      * @param userId 用户id
      * @param specId 商品规格id
-     * @return
      */
     public static String lockCart(String userId, Long specId) {
         return RedisConstant.LOCK +RedisConstant.CART +userId +":"+ specId;
@@ -117,7 +99,6 @@ public class RedisKeyGenerator {
      * couponStockKey
      * coupon: + stock: + "{" +couponId+ "}"
      * @param couponId 优惠券id
-     * @return
      */
     public static String couponStockKey(Long couponId) {
         return RedisConstant.PREFIX_COUPON + RedisConstant.STOCK + "{" + couponId + "}";
@@ -127,7 +108,6 @@ public class RedisKeyGenerator {
      * couponStockKey
      * coupon: + received: + "{" +couponId+ "}"
      * @param couponId 优惠券id
-     * @return
      */
     public static String couponReceivedKey(Long couponId) {
         return RedisConstant.PREFIX_COUPON + RedisConstant.RECEIVED + "{" + couponId + "}";
@@ -137,7 +117,6 @@ public class RedisKeyGenerator {
      * couponStockKey
      * coupon: + receiveQty: + "{" +couponId+ "}"
      * @param couponId 优惠券id
-     * @return
      */
     public static String couponReceiveQtyKey(Long couponId) {
         return RedisConstant.PREFIX_COUPON + RedisConstant.RECEIVE_QTY + "{" + couponId + "}";
@@ -147,7 +126,6 @@ public class RedisKeyGenerator {
      * couponStockKey
      * coupon: + pending: + "{" +couponId+ "}"
      * @param couponId 优惠券id
-     * @return
      */
     public static String couponPendingKey(Long couponId) {
         return RedisConstant.PREFIX_COUPON + RedisConstant.PENDING + "{" + couponId + "}";
@@ -157,7 +135,6 @@ public class RedisKeyGenerator {
      * couponStockKey
      * coupon: + unablePending: + "{" +couponId+ "}"
      * @param couponId 优惠券id
-     * @return
      */
     public static String couponUnablePendingKey(Long couponId) {
         return RedisConstant.PREFIX_COUPON + RedisConstant.UNABLE_PENDING + "{" + couponId + "}";
@@ -171,7 +148,6 @@ public class RedisKeyGenerator {
      * couponDetail
      * coupon: +  detail: +couponId
      * @param couponId 优惠券id
-     * @return
      */
     public static String couponDetail(Long couponId) {
         return RedisConstant.PREFIX_COUPON +RedisConstant.DETAIL +couponId;
@@ -205,7 +181,31 @@ public class RedisKeyGenerator {
      * couponActivityUnBegin
      * coupon: + activityUnBegin
      */
-    public static String couponActivityUnBegin() {
+    public static String couponActivityUnBeginZSet() {
         return RedisConstant.PREFIX_COUPON  +RedisConstant.ACTIVITY_UN_BEGIN;
+    }
+
+    /**
+     * couponUserList
+     * coupon:+user:+list:+{userId}
+     */
+    public static String couponUserList(Long userId) {
+        return RedisConstant.PREFIX_COUPON + RedisConstant.USER + RedisConstant.LIST + "{" + userId + "}";
+    }
+
+    /**
+     * couponActivityList
+     * coupon:+activity+list
+     */
+    public static String couponActivity() {
+        return RedisConstant.PREFIX_COUPON+RedisConstant.ACTIVITY;
+    }
+
+    /**
+     * couponActivityLock
+     * lock:+coupon:+activity
+     */
+    public static String couponActivityLock() {
+        return RedisConstant.LOCK+RedisConstant.PREFIX_COUPON+RedisConstant.ACTIVITY;
     }
 }

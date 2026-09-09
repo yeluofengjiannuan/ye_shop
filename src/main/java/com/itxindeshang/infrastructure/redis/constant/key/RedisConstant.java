@@ -31,5 +31,7 @@ public class RedisConstant {
     public static final String COUPON_FIXED_TIME_IN_PROGRESS = "couponFixedTimeInProgress";
     public static final String AFTER_RECEIVE_TIME_IN_PROGRESS = "afterReceiveTimeInProgress";
     public static final String ACTIVITY_UN_BEGIN = "activityUnBegin";
+    public static final String LIST = "list:";
+    public static final String ACTIVITY = "activity";
 }
 

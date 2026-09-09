@@ -20,13 +20,16 @@ import com.itxindeshang.pojo.dto.CouponCreateDTO;
 import com.itxindeshang.pojo.entity.Coupon;
 import com.itxindeshang.pojo.entity.CouponReceiveMessage;
 import com.itxindeshang.pojo.entity.CouponUser;
+import com.itxindeshang.pojo.enums.CouponStatusEnum;
 import com.itxindeshang.pojo.enums.CouponValidModeEnum;
+import com.itxindeshang.pojo.vo.CouponUserVO;
 import com.itxindeshang.service.CouponService;
 import com.itxindeshang.service.CouponUserService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
+import org.springframework.boot.autoconfigure.cache.CacheProperties;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DuplicateKeyException;
@@ -52,6 +55,7 @@ import java.util.stream.Collectors;
 public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> implements CouponService {
     //TODO:管理员主动分发给指定用户4的方法，增加user实体类的level字段
     //TODO：这里就是领取后n天过期的券是随时能领的，只有管理员主动下架，后续再优化这里的逻辑
+    //TODO:pending和unablePending要处理
     @Resource
     private CopyMapper copyMapper;
 
@@ -80,7 +84,7 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
      * 管理员分发优惠券
      */
     @Override
-    public Result<?> saveCouponAdmin(CouponCreateDTO couponCreateDTO) {
+    public Result<Long> saveCouponAdmin(CouponCreateDTO couponCreateDTO) {
 
         // 1. 条件校验
         validateCouponCreateDTO(couponCreateDTO);
@@ -91,10 +95,10 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
         // 3. 生成优惠券编号
         coupon.setCouponNo(snowflakeIdGenerator.generateCouponNo());
 
-        // 4. 初始化数量字段
+        // 4. 填充初始化数量字段
         coupon.setReceiveQty(0);
         coupon.setUsedQty(0);
-        coupon.setStatus(0);
+        coupon.setStatus(CouponStatusEnum.DRAFT);
 
         // 5. 无门槛券强制门槛为0
         if (couponCreateDTO.getType() == 3) {
@@ -102,17 +106,10 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
         }
         // 6. 入库
         couponMapper.insert(coupon);
-        /*List<Coupon> couponNew = new ArrayList<>(1 );
-        couponNew.add(coupon);
-        String couponDetailKey = RedisKeyGenerator.couponDetail(coupon.getId());
-        RedisConnector.setHashObject(couponDetailKey,coupon);
-        //TODO:这里又可以优化dto传入的是枚举类了啊,这一片的逻辑在status开启，上架下架
-        if (coupon.getValidMode().equals(CouponValidModeEnum.FIXED_TIME.getCode())) {
-            updateCouponFixedTimeListCache(couponNew);
-        }*/
-        return Result.success();
-    }
+        Long couponId = coupon.getId();
 
+        return Result.success(couponId);
+    }
 
     /**
      * 条件校验
@@ -122,7 +119,6 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
         if (dto.getReleaseTime() == null) {
             throw new CouponException(MessageConstant.RELEASE_TIME_REQUIRED);
         }
-
         // 2. 分发时间不能早于当前时间（防止发“过期”的券）
         if (dto.getReleaseTime().isBefore(LocalDateTime.now())) {
             throw new CouponException(MessageConstant.RELEASE_TIME_BEFORE_NOW);
@@ -169,9 +165,8 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
         }
     }
 
-
     /**
-     * 这里往下就是用户领取的逻辑，key修改luahash槽{}确保集群情况下lua可以正常使用
+     * 这里往下就是用户领取的逻辑，key修改lua hash槽{}确保集群情况下lua可以正常使用
      */
     private static final DefaultRedisScript<Long> COUPON_LUA_SCRIPT;
 
@@ -183,7 +178,6 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
 
     /**
      * 用户领取优惠券
-     *
      * @param quantity 前端拿到coupon的perUserQty字段
      * @param couponId 优惠券Id
      */
@@ -205,7 +199,7 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
         if (!quantity.equals(coupon.getPerUserQty())) {
             return Result.error(MessageConstant.COUPON_USER_RECEIVE_ERROR);
         }
-        if (coupon.getStatus() != 1) {
+        if (coupon.getStatus() != CouponStatusEnum.ON_SHELF) {
             return Result.error(MessageConstant.COUPON_NO_SHELF);
         }
         LocalDateTime now = LocalDateTime.now();
@@ -266,9 +260,8 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
         if (coupon.getValidMode() == 1) {
             expireTime = coupon.getValidEnd();
         } else {
-            expireTime = coupon.getValidEnd().plusDays(coupon.getValidDays());
+            expireTime = LocalDateTime.now().plusDays(coupon.getValidDays());
         }
-
         try {
             mqProducerUtils.sendCouponReceiveMessage(couponId, Long.valueOf(userId), perUserQty);
         } catch (Exception e) {
@@ -276,7 +269,6 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
             rollbackRedis(couponId, Long.valueOf(userId), perUserQty);
             return Result.error(MessageConstant.SYSTEM_BUSY);
         }
-
         // 4. 返回处理中的领券记录
         CouponUser couponUser = CouponUser.builder()
                 .userId(Long.valueOf(userId))
@@ -295,6 +287,10 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
         return Result.success(couponUser);
     }
 
+    /**
+     * 消费用户领取优惠券异步存库
+     * @param message 消息体
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void syncSave(CouponReceiveMessage message) {
@@ -323,8 +319,7 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
             if (coupon.getValidMode() == 1) {
                 expireTime = coupon.getValidEnd();
             } else {
-                expireTime =  LocalDateTime.now().plusDays(coupon.getValidDays());
-                //TODO:这里就要考虑存redis的zset过期了
+                expireTime = LocalDateTime.now().plusDays(coupon.getValidDays());
             }
             CouponUser couponUser = CouponUser.builder()
                     .userId(userId)
@@ -460,6 +455,7 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
         }
 
         List<Coupon> activeCoupons = couponMapper.selectActiveCoupons();
+        activeCoupons.stream().filter(coupon -> coupon.getValidMode() == 2 || coupon.getValidEnd().isAfter(LocalDateTime.now()));
         for (Coupon coupon : activeCoupons) {
             try {
                 recoverSingleCoupon(coupon.getId());
@@ -533,7 +529,10 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
             }
         }
         // ===== 第六步：设置 TTL =====
-        long ttl = calculateTtl(coupon);
+        long ttl =0;
+        if (coupon.getValidMode()==1) {
+            ttl = calculateTtl(coupon);
+        }
         if (ttl > 0) {
             stringRedisTemplate.expire(stockKey, ttl, TimeUnit.SECONDS);
             stringRedisTemplate.expire(receivedKey, ttl, TimeUnit.SECONDS);
@@ -559,14 +558,14 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
     public void updateCouponRedisCache() {
         List<Coupon> couponList = lambdaQuery().eq(Coupon::getStatus, 1).list();
         // 使用 Redis 管道 (Pipelined) 批量更新优惠券的基础信息缓存 (Hash结构)
-        // 这样可以减少网络往返次数，提高写入性能,存coupon细节后续showlist的时候可以使用
+        // 这样可以减少网络往返次数，提高写入性能,存coupon细节后续showList的时候可以使用
         RedisConnector.executePipelined(new SessionCallback<>() {
             @Override
             public <K, V> Object execute(@Nullable RedisOperations<K, V> operations) throws DataAccessException {
                 for (Coupon coupon : couponList) {
                     String key = RedisKeyGenerator.couponDetail(coupon.getId());
                     //每个存hashkey
-                    RedisConnector.setHashObject(key, coupon);//TODO:这里没有ttl啊，先这样，因为用户看couponUser详情还需要
+                    RedisConnector.setHashObject(key, coupon);//不设置ttl，根据需求下架
                 }
                 return null;
             }
@@ -672,33 +671,191 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
     /**
      * 上架优惠券活动
      * @param couponId 优惠券id
-     * @return
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Result<?> onShlef(Long couponId) {
         Coupon coupon = getById(couponId);
         if (coupon == null) {
-            return Result.error("优惠券不存在");
+            return Result.error(MessageConstant.COUPON_NOT_FOUND);
         }
-        if (coupon.getStatus().equals(1)) {
-            return Result.error("活动已上架");
+
+        if (coupon.getValidEnd()!=null &&coupon.getValidEnd().isBefore(LocalDateTime.now())) {
+            lambdaUpdate().set(Coupon::getStatus,3).eq(Coupon::getId,couponId).update();
+            return Result.error(MessageConstant.ACTIVITY_EXPIRED);
         }
+        if (CouponStatusEnum.VOIDED.equals(coupon.getStatus())) {
+            return Result.error(MessageConstant.ACTIVITY_VOIDED);
+        }
+        //数据库操作：上架
         if (coupon.getValidEnd() == null || coupon.getValidEnd().isAfter(LocalDateTime.now())) {
             lambdaUpdate().set(Coupon::getStatus, 1).eq(Coupon::getId,couponId).update();
-            coupon.setStatus(1);
-            List<Coupon> couponNew = new ArrayList<>(1 );
-            couponNew.add(coupon);
+            if (CouponStatusEnum.OFF_SHELF.equals(coupon.getStatus())) {
+                couponUserService.lambdaUpdate()
+                        .set(CouponUser::getInvalidatedCount,0)
+                        .setSql("unused_count = unused_count+invalidated_count ")
+                        .eq(CouponUser::getCouponId,couponId)
+                        .update();
+            }
+
+            //存couponDetail
             String couponDetailKey = RedisKeyGenerator.couponDetail(coupon.getId());
             RedisConnector.setHashObject(couponDetailKey,coupon);
-            String stockKey = RedisKeyGenerator.couponStockKey(couponId);
-            stringRedisTemplate.opsForValue().setIfAbsent(stockKey, String.valueOf(coupon.getTotalQty()));
+            //写缓存方便用户领取
+            if (coupon.getReleaseTime().isBefore(LocalDateTime.now())) {
+                String stockKey = RedisKeyGenerator.couponStockKey(couponId);
+                stringRedisTemplate.opsForValue().setIfAbsent(stockKey, String.valueOf(coupon.getTotalQty()));
+                String couponActivityKey = RedisKeyGenerator.couponActivity();
+                RedisConnector.delete(couponActivityKey);
+            } else {
+                //存进这个zSet
+                String couponActivityUnBeginZSetKey = RedisKeyGenerator.couponActivityUnBeginZSet();
+                long timesTemp = coupon.getReleaseTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+                RedisConnector.opsForZSet().add(couponActivityUnBeginZSetKey, couponId, timesTemp);
+            }
+            //redis存储过期时间
+            coupon.setStatus(CouponStatusEnum.ON_SHELF);
+            List<Coupon> couponNew = new ArrayList<>(1 );
+            couponNew.add(coupon);
             if (CouponValidModeEnum.FIXED_TIME.getCode().equals(coupon.getValidMode())) {
                 updateCouponFixedTimeListCache(couponNew);
             }
             return Result.success();
         }
-        return Result.error("无法上架");
+        return Result.error(MessageConstant.ON_SHELF_ERROR);
     }
 
+    /**
+     * 优惠券活动下架
+     * @param couponId 活动id
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Result<?> offShelf(Long couponId) {
+        Coupon coupon = getById(couponId);
+        if (coupon == null) {
+            return Result.error(MessageConstant.COUPON_NOT_FOUND);
+        }
+        if (!CouponStatusEnum.ON_SHELF.equals(coupon.getStatus())) {
+            return Result.error(MessageConstant.ACTIVITY_OFF_SHELF);
+        }
+        if (coupon.getValidMode() == 2) {
+            //领取后n天过期的优惠券下架直接作废
+            lambdaUpdate().set(Coupon::getStatus, 4).eq(Coupon::getId, couponId).update();
+            //删除couponDetail
+            String couponDetail = RedisKeyGenerator.couponDetail(couponId);
+            //正常下架就让redis跑完过期
+            RedisConnector.delete(couponDetail);
+        } else {
+            //设为下架后续有机会重新上架
+            lambdaUpdate().set(Coupon::getStatus,2).eq(Coupon::getId,couponId).update();
+            //先设置为作废，在活动能开启的情况下设置为
+            couponUserService.lambdaUpdate()
+                    .set(CouponUser::getUnusedCount,0)
+                    .setSql("invalidated_count = invalidated_count+unused_count ")
+                    .eq(CouponUser::getCouponId,couponId)
+                    .update();
+        }
+        //修改couponActivityRedis
+        String couponActivityKey = RedisKeyGenerator.couponActivity();
+        RedisConnector.delete(couponActivityKey);
+        //清除相关缓存
+        RedisConnector.delete(RedisKeyGenerator.couponDetail(couponId));
+        RedisConnector.delete(RedisKeyGenerator.couponReceivedKey(couponId));
+        RedisConnector.delete(RedisKeyGenerator.couponReceiveQtyKey(couponId));
+        RedisConnector.delete(RedisKeyGenerator.couponStockKey(couponId));
+        RedisConnector.delete(RedisKeyGenerator.couponPendingKey(couponId));
+        RedisConnector.delete(RedisKeyGenerator.couponUnablePendingKey(couponId));
+        return Result.success();
+    }
+
+    /**
+     * 查看用户优惠券列表
+     */
+    @Override
+    public Result<List<CouponUserVO>> showCouponUserList() {
+        String userId = BaseContext.getUserId();
+        //查缓存
+        String couponUserListKey = RedisKeyGenerator.couponUserList(Long.valueOf(userId));
+        List<CouponUserVO> couponUserList = (List<CouponUserVO>)RedisConnector.opsForValue().get(couponUserListKey);
+        // 2. 缓存未命中，查库拼装
+        if (CollectionUtils.isEmpty(couponUserList)) {
+            //查库拼装
+            List<CouponUser> list = couponUserService.lambdaQuery().eq(CouponUser::getUserId, userId).list();
+            if (CollectionUtils.isEmpty(list)) {
+                return Result.success();
+            }
+            list = list.stream().filter(couponUser -> couponUser.getUnusedCount() > 0 || couponUser.getLockedCount() > 0).toList();
+            if (CollectionUtils.isEmpty(list)) {
+                return Result.success();
+            }
+            List<Long> couponIds = list.stream().map(CouponUser::getCouponId).distinct().toList();
+            List<Coupon> couponList = lambdaQuery().in(Coupon::getId, couponIds).list();
+            Map<Long, Coupon> couponMap = couponList.stream().collect(Collectors.toMap(Coupon::getId, coupon -> coupon));
+            couponUserList = list.stream().map(couponUser -> {
+                Coupon coupon = couponMap.get(couponUser.getCouponId());
+                return copyMapper.toCouponUserVO(coupon, couponUser);
+            }).toList();
+            RedisConnector.opsForValue().set(couponUserListKey,couponUserList);
+        }
+        return  Result.success(couponUserList);
+    }
+
+    /**
+     * 查看couponActivity活动
+     */
+    @Override
+    public Result<List<Coupon>> showCouponActivityList() {
+        String couponActivityKey= RedisKeyGenerator.couponActivity();
+        List<Coupon> coupons = (List<Coupon>)RedisConnector.opsForValue().get(couponActivityKey);
+        //缓存穿透
+        if (!CollectionUtils.isEmpty(coupons)) {
+            //直接拿到，返回就行
+            return Result.success(coupons);
+        } else {
+            //看门狗加分布式锁
+            String couponActivityLockKey =RedisKeyGenerator.couponActivityLock();
+            RLock lock = redissonClient.getLock(couponActivityLockKey);
+            try {
+                boolean isLocked = lock.tryLock(5, 30, TimeUnit.SECONDS);
+                if (isLocked) {
+                    //拿到锁再查一次
+                    coupons = (List<Coupon>)RedisConnector.opsForValue().get(couponActivityKey);
+                    if (!CollectionUtils.isEmpty(coupons)) {
+                        return Result.success(coupons);
+                    }
+                    //查库
+                    coupons = lambdaQuery().eq(Coupon::getStatus, CouponStatusEnum.ON_SHELF).le(Coupon::getReleaseTime,LocalDateTime.now()).list();
+                    if (CollectionUtils.isEmpty(coupons)) {
+                        // 数据库也没数据 -> 存空列表，有效期短一点（如 5 分钟）
+                        RedisConnector.opsForValue().set(couponActivityKey, Collections.emptyList(), 5, TimeUnit.MINUTES);
+                        return Result.success();
+                    }
+                    //缓存回填
+                    RedisConnector.opsForValue().set(couponActivityKey,coupons);
+                    // 有数据 -> 存数据，有效期长一点（如 30 分钟）
+                    // 建议设置随机过期时间防止雪崩，例如 30分钟 + 随机0-10分钟
+                    RedisConnector.opsForValue().set(couponActivityKey, coupons, 30, TimeUnit.MINUTES);
+                    return Result.success(coupons);
+                } else {
+                    Thread.sleep(50);
+                    //上述步骤
+                    coupons = (List<Coupon>)RedisConnector.opsForValue().get(couponActivityKey);
+                    if (!CollectionUtils.isEmpty(coupons)) {
+                        return Result.success(coupons);
+                    } else {
+                        return Result.error(MessageConstant.DATA_ERROR);
+                    }
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(MessageConstant.LOCK_ERROR, e);
+            }finally {
+                // 【核心】：安全释放锁，无论中间发生了什么，这里一定会执行
+                if (lock.isHeldByCurrentThread()) {
+                    lock.unlock();
+                }
+            }
+        }
+    }
 }

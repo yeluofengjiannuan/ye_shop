@@ -2,12 +2,14 @@ package com.itxindeshang.infrastructure.mq.constant.coupon;
 
 public class MqCouponConstant {
     //topic
-    public static final String TOPIC_COUPON = "coupon:";
+    public static final String TOPIC_COUPON = "coupon";
 
     //tag
     public static final String TAG_FIXED_TIME = "fixed-time";
 
     public static final String TAG_AFTER_RECEIVE = "after-receive";
+
+
 
 
     //consumer group

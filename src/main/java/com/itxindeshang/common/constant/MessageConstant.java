@@ -55,4 +55,9 @@ public class MessageConstant {
     public static final String RELEASE_TIME_REQUIRED = "分发时间不能早于当前时间";
     public static final String RELEASE_TIME_BEFORE_NOW = "分发时间必须早于有效期开始时间";
     public static final String USER_LEVEL_ERROR = "用户等级不匹配无法领取";
+    public static final String ACTIVITY_OFF_SHELF = "活动已下架";
+    public static final String ON_SHELF_ERROR = "上架失败，请稍后重试";
+    public static final String ACTIVITY_EXPIRED = "活动已过期";
+    public static final String ACTIVITY_ON_SHELF = "活动已上架";
+    public static final String ACTIVITY_VOIDED = "活动已作废";
 }

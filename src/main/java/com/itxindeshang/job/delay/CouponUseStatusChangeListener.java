@@ -52,6 +52,7 @@ public class CouponUseStatusChangeListener {
         threadPool.execute(() -> loopListen(RedisKeyGenerator.couponFixedTimeUnBeginZSet()));
         threadPool.execute(() -> loopListen(RedisKeyGenerator.couponFixedTimeInProgressZSet()));
         threadPool.execute(() -> loopListen(RedisKeyGenerator.couponAfterReceiveTimeInProgressZSet()));
+        threadPool.execute(()->loopListen(RedisKeyGenerator.couponActivityUnBeginZSet()));
         running = true;
         log.info("优惠券过期监听任务 running = {}", running);
     }
@@ -78,7 +79,8 @@ public class CouponUseStatusChangeListener {
                 Set<Object> taskSet = RedisConnector.opsForZSet()
                         .rangeByScore(zSetKey, 0, now, 0, 1);
                 if (Objects.isNull(taskSet) || taskSet.isEmpty()) {
-                    sleep(50);
+                    sleep(50);//好像是线程罪魁祸首，我的mq来不及处理数据的元凶
+//                    sleep(1000);
                     continue;
                 }
                 String taskId = taskSet.toArray()[0].toString();
@@ -133,17 +135,49 @@ public class CouponUseStatusChangeListener {
             //删除，处理库
             String key = RedisKeyGenerator.couponFixedTimeInProgressZSet();
             RedisConnector.opsForZSet().remove(key,couponId);
-            rocketMQTemplate.convertAndSend(MqCouponConstant.TOPIC_COUPON+MqCouponConstant.TAG_FIXED_TIME,couponId);
+            //重建活动列表
+            RedisConnector.delete(RedisKeyGenerator.couponActivity());
+            //删除detail
+            RedisConnector.delete(RedisKeyGenerator.couponDetail(couponId));
+            //删除receiveQty
+            RedisConnector.delete(RedisKeyGenerator.couponReceiveQtyKey(couponId));
+            //删除received
+            RedisConnector.delete(RedisKeyGenerator.couponReceivedKey(couponId));
+            //删除相关pendingKey
+            RedisConnector.delete(RedisKeyGenerator.couponPendingKey(couponId));
+            RedisConnector.delete(RedisKeyGenerator.couponUnablePendingKey(couponId));
+            rocketMQTemplate.convertAndSend(MqCouponConstant.TOPIC_COUPON+":"+MqCouponConstant.TAG_FIXED_TIME,couponId);
             return;
         }
         // 领券后 N 天优惠券 未用->过期
         if (zSetKey.equals(RedisKeyGenerator.couponAfterReceiveTimeInProgressZSet())) {
             zSetKey = RedisKeyGenerator.couponAfterReceiveTimeInProgressZSet();
             RedisConnector.opsForZSet().remove(zSetKey,couponUserId);
-            rocketMQTemplate.convertAndSend(MqCouponConstant.TOPIC_COUPON+MqCouponConstant.TAG_AFTER_RECEIVE,couponUserId);
+            rocketMQTemplate.convertAndSend(MqCouponConstant.TOPIC_COUPON+":"+MqCouponConstant.TAG_AFTER_RECEIVE,couponUserId);
             return;
         }
-
+        //活动未发放->活动上线
+        //FIXME：这里的key名称可以修改为zSet后缀的
+        if (zSetKey.equals(RedisKeyGenerator.couponActivityUnBeginZSet())) {
+            //拿到coupon类型
+            String couponDetailListKey = RedisKeyGenerator.couponDetail(couponId);
+            Coupon coupon = RedisConnector.getHashObject(couponDetailListKey, Coupon.class);
+            if (coupon == null) {
+                String key = RedisKeyGenerator.couponFixedTimeUnBeginZSet();
+                //FIXME：我也不知道什么情况会==null
+                RedisConnector.opsForZSet().remove(key,couponId);
+                return;
+            }
+            //上线活动预热,清空couponActivity后续查询会自己填充的
+            String couponActivity = RedisKeyGenerator.couponActivity();
+            RedisConnector.delete(couponActivity);
+            //清除zSet存的couponId
+            String couponActivityUnBeginZSetKey = RedisKeyGenerator.couponActivityUnBeginZSet();
+            RedisConnector.opsForZSet().remove(couponActivityUnBeginZSetKey, couponId);
+            //预热缓存库存
+            String stockKey = RedisKeyGenerator.couponStockKey(couponId);
+            RedisConnector.opsForValue().set(stockKey, coupon.getTotalQty());
+        }
     }
 
     /**

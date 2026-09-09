@@ -3,6 +3,7 @@ package com.itxindeshang.pojo.entity;
 import com.baomidou.mybatisplus.annotation.*;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.itxindeshang.common.constant.DatePatternConstants;
+import com.itxindeshang.pojo.enums.CouponStatusEnum;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -142,10 +143,10 @@ public class Coupon implements Serializable {
     private LocalDateTime validEnd;
 
     /**
-     * 状态：0下架 1上架
+     * 状态：0草稿 1上架 2已下架 3已过期 4已作废
      */
     @TableField("status")
-    private Integer status;
+    private CouponStatusEnum status;
 
     /**
      * 创建时间

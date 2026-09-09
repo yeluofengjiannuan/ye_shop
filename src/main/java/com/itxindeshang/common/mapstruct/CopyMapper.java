@@ -3,6 +3,7 @@ package com.itxindeshang.common.mapstruct;
 import com.itxindeshang.pojo.UserInfo;
 import com.itxindeshang.pojo.dto.*;
 import com.itxindeshang.pojo.entity.*;
+import com.itxindeshang.pojo.vo.CouponUserVO;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
@@ -37,6 +38,16 @@ public interface CopyMapper {
 
     Address addressDTOToAddress(AddressDTO addressDTO);
 
-
     Coupon couponCreateDTOToCoupon(CouponCreateDTO couponCreateDTO);
+
+    @Mapping(source = "coupon.id", target = "couponId")
+    @Mapping(source = "coupon.name", target = "couponName")
+    @Mapping(source = "coupon.type", target = "type")
+    @Mapping(source = "coupon.conditionAmount", target = "conditionAmount")
+    @Mapping(source = "coupon.discountAmount",target = "discountAmount")
+    @Mapping(source = "couponUser.id",target = "couponUserId")
+    @Mapping(source = "couponUser.unusedCount",target = "unusedCount")
+    @Mapping(source = "couponUser.lockedCount",target = "lockedCount")
+    @Mapping(source = "couponUser.expireTime",target = "expireTime")
+    CouponUserVO toCouponUserVO(Coupon coupon, CouponUser couponUser);
 }
