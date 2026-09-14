@@ -19,4 +19,6 @@ public interface CategoryService extends IService<Category> {
     Result deleteById(Long categoryId);
 
     Result updateCategory(Long categoryId, CategoryDTO categoryDTO);
+
+    int countByIds(List<Long> categoryIds);
 }

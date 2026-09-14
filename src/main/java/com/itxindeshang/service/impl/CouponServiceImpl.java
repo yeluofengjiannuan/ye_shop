@@ -13,18 +13,14 @@ import com.itxindeshang.context.BaseContext;
 import com.itxindeshang.infrastructure.mq.utils.MqProducerUtils;
 import com.itxindeshang.infrastructure.redis.connect.RedisConnector;
 import com.itxindeshang.infrastructure.redis.generator.RedisKeyGenerator;
-import com.itxindeshang.mapper.CouponMapper;
-import com.itxindeshang.mapper.CouponUserMapper;
+import com.itxindeshang.mapper.*;
 import com.itxindeshang.pojo.UserInfo;
 import com.itxindeshang.pojo.dto.CouponCreateDTO;
-import com.itxindeshang.pojo.entity.Coupon;
-import com.itxindeshang.pojo.entity.CouponReceiveMessage;
-import com.itxindeshang.pojo.entity.CouponUser;
+import com.itxindeshang.pojo.entity.*;
 import com.itxindeshang.pojo.enums.CouponStatusEnum;
 import com.itxindeshang.pojo.enums.CouponValidModeEnum;
 import com.itxindeshang.pojo.vo.CouponUserVO;
-import com.itxindeshang.service.CouponService;
-import com.itxindeshang.service.CouponUserService;
+import com.itxindeshang.service.*;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
@@ -80,10 +76,21 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
     @Resource
     private CouponUserService couponUserService;
 
+    @Resource
+    private CategoryService categoryService;
+    @Resource
+    private ProductService productService;
+    @Resource
+    private CouponCategoryService couponCategoryService;
+
+    @Resource
+    private CouponProductService couponProductService;
+
     /**
      * 管理员分发优惠券
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Result<Long> saveCouponAdmin(CouponCreateDTO couponCreateDTO) {
 
         // 1. 条件校验
@@ -95,6 +102,7 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
         // 3. 生成优惠券编号
         coupon.setCouponNo(snowflakeIdGenerator.generateCouponNo());
 
+
         // 4. 填充初始化数量字段
         coupon.setReceiveQty(0);
         coupon.setUsedQty(0);
@@ -104,9 +112,20 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
         if (couponCreateDTO.getType() == 3) {
             coupon.setConditionAmount(BigDecimal.ZERO);
         }
+
+        // 如果既不是指定商品(2)，也不是指定分类(3)，则默认为全平台通用(1)
+        if (couponCreateDTO.getUseScope() != 2 && couponCreateDTO.getUseScope() != 3) {
+            coupon.setUseScope(1);
+        }
+
         // 6. 入库
         couponMapper.insert(coupon);
+
         Long couponId = coupon.getId();
+
+        //7.条件判断前端传来的商品或分类是否正确
+        handleCouponScope(couponId,couponCreateDTO);
+
 
         return Result.success(couponId);
     }
@@ -162,6 +181,57 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
             if (dto.getDiscountAmount() == null || dto.getDiscountAmount().compareTo(BigDecimal.ZERO) <= 0) {
                 throw new CouponException(MessageConstant.NO_THRESHOLD_DISCOUNT_REQUIRED);
             }
+        }
+    }
+
+    /**
+     * 处理优惠券的使用范围关联
+     */
+    private void handleCouponScope(Long couponId, CouponCreateDTO dto) {
+        // 场景1：指定商品
+        if (dto.getUseScope() == 2) {
+            List<Long> productIds = dto.getProductIds();
+            if (productIds == null || productIds.isEmpty()) {
+                throw new CouponException("指定商品时，商品列表不能为空");
+            }
+
+            // 校验商品是否存在
+            int existCount = productService.countByIds(productIds);
+            if (existCount != productIds.size()) {
+                throw new CouponException("部分商品ID不存在，请检查后重试");
+            }
+
+            // 批量插入关联表
+            List<CouponProduct> relations = productIds.stream()
+                    .map(productId -> CouponProduct.builder()
+                            .couponId(couponId)
+                            .productId(productId)
+                            .build())
+                    .toList();
+            couponProductService.saveBatch(relations);
+        }
+
+        // 场景2：指定分类
+        else if (dto.getUseScope() == 3) {
+            List<Long> categoryIds = dto.getCategoryIds();
+            if (categoryIds == null || categoryIds.isEmpty()) {
+                throw new CouponException("指定分类时，分类列表不能为空");
+            }
+
+            // 校验分类是否存在
+            int existCount = categoryService.countByIds(categoryIds);
+            if (existCount != categoryIds.size()) {
+                throw new CouponException("部分分类ID不存在，请检查后重试");
+            }
+
+            // 批量插入关联表
+            List<CouponCategory> relations = categoryIds.stream()
+                    .map(categoryId -> CouponCategory.builder()
+                            .couponId(couponId)
+                            .categoryId(categoryId)
+                            .build())
+                    .toList();
+            couponCategoryService.saveBatch(relations);
         }
     }
 

@@ -402,6 +402,15 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     }
 
     /**
+     * 根据id查看符合的商品数量
+     * @param productIds 商品id集合
+     */
+    @Override
+    public int countByIds(List<Long> productIds) {
+        return productMapper.countByIds(productIds);
+    }
+
+    /**
      * 游标结果封装
      * @param queryList 查询列表
      * @param querySize 查询数量
@@ -436,8 +445,5 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
                 .cursorCommonEntity(cursorCommonEntityResult)
                 .build();
         return Result.success(result);
-
     }
-
-
 }

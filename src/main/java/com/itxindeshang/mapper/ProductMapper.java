@@ -3,6 +3,7 @@ package com.itxindeshang.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.itxindeshang.pojo.entity.Product;
 import com.itxindeshang.pojo.enums.ProductSortTypeEnum;
+import com.itxindeshang.pojo.vo.ProductSpecVO;
 import com.itxindeshang.pojo.vo.ProductVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -53,4 +54,11 @@ public interface ProductMapper extends BaseMapper<Product> {
 
     Product selectByProductId(Long productId);
 
+
+    int countByIds(List<Long> productIds);
+
+    /*//TODO:这里是后面order的
+    List<ProductSpecVO> selectSpecsBatch(List<Long> specIds);
+
+    int deductStock(Long productId, Long specId, Integer quantity);*/
 }

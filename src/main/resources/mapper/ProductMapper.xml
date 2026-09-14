@@ -192,5 +192,11 @@
 
         LIMIT #{querySize}
     </select>
+    <select id="countByIds" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM product WHERE id IN
+        <foreach collection="productIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
 
 </mapper>

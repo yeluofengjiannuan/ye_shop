@@ -5,6 +5,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class CouponCreateDTO {
@@ -45,6 +46,16 @@ public class CouponCreateDTO {
      * 固定开始时间（validMode=1时必填）
      */
     private LocalDateTime validStart;
+
+    /**
+     * 指定商品ID列表（useScope=2时必填）
+     */
+    private List<Long> productIds;
+
+    /**
+     * 指定分类ID列表（useScope=3时必填）
+     */
+    private List<Long> categoryIds;
 
     /**
      * 固定结束时间（validMode=1时必填）

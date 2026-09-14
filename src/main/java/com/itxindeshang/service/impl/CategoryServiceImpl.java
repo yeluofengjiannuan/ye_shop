@@ -33,6 +33,9 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
     @Resource
     private CopyMapper copyMapper;
 
+    @Resource
+    private CategoryMapper categoryMapper;
+
     /**
      * 递归 为分类树 set List<Category> children
      * 最终就是很完美的层级
@@ -169,6 +172,15 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         }
         invalidateCache();
         return Result.success(category);
+    }
+
+    /**
+     * 根据id集合查看符合的分类数量
+     * @param categoryIds 分类id集合
+     */
+    @Override
+    public int countByIds(List<Long> categoryIds) {
+        return categoryMapper.countByIds(categoryIds);
     }
 
     /**
