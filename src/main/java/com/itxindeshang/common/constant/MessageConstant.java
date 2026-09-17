@@ -60,4 +60,9 @@ public class MessageConstant {
     public static final String ACTIVITY_EXPIRED = "活动已过期";
     public static final String ACTIVITY_ON_SHELF = "活动已上架";
     public static final String ACTIVITY_VOIDED = "活动已作废";
+    public static final String PRODUCT_SPEC_NOT_MATCH_PRODUCT = "商品规格与商品不匹配";
+    public static final String COUPON_STATUS_ERROR = "优惠券状态异常，锁定失败";
+    public static final String ORDER_NOT_EXIST = "订单不存在";
+    public static final String ORDER_NOT_CANCEL = "订单不处于可以取消状态";
+    public static final Object ORDER_PROCESSED = "订单已处理";
 }

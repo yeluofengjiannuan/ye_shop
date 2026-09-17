@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.itxindeshang.mapper.CouponCategoryMapper">
+    <select id="selectApplicableProductIds" resultType="java.lang.Long">
+        SELECT DISTINCT p.id
+        FROM product p
+        INNER JOIN coupon_category cc ON cc.coupon_id = #{couponId}
+        INNER JOIN category parent ON cc.category_id = parent.id
+        LEFT JOIN category child
+        ON child.parent_id = cc.category_id
+        AND parent.parent_id = 0
+        WHERE p.id IN
+        <foreach collection="productIds" item="productId" open="(" separator="," close=")">
+            #{productId}
+        </foreach>
+        AND (
+        p.category_id = cc.category_id
+        OR p.category_id = child.id
+        )
+    </select>
+</mapper>

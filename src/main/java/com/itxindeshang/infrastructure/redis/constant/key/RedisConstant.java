@@ -33,5 +33,7 @@ public class RedisConstant {
     public static final String ACTIVITY_UN_BEGIN = "activityUnBegin";
     public static final String LIST = "list:";
     public static final String ACTIVITY = "activity";
+    public static final String PREFIX_ORDER ="order:";
+    public static final String ORDERNO = "orderNo:";
 }
 

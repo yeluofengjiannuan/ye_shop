@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace= "com.itxindeshang.mapper.CouponUserMapper">
+
+    <update id="updateCancel" parameterType="java.lang.String">
+        UPDATE coupon_user cu
+        INNER JOIN `order` o ON cu.id = o.coupon_user_id
+        SET cu.unused_count = cu.unused_count + 1,
+        cu.locked_count = cu.locked_count - 1
+        WHERE o.order_no = #{orderNo}
+    </update>
+    <update id="updatePaySuccess">
+        UPDATE coupon_user cu
+        INNER JOIN `order` o ON cu.id = o.coupon_user_id
+        SET cu.used_count = cu.used_count + 1,
+        cu.locked_count = cu.locked_count - 1
+        WHERE o.order_no = #{orderNo}
+    </update>
+</mapper>

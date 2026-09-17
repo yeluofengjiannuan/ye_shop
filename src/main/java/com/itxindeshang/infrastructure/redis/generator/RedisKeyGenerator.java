@@ -208,4 +208,13 @@ public class RedisKeyGenerator {
     public static String couponActivityLock() {
         return RedisConstant.LOCK+RedisConstant.PREFIX_COUPON+RedisConstant.ACTIVITY;
     }
+
+    /**
+     * orderKey
+     * order: + detail: + orderNo: + orderNo
+     * @param orderNo 订单号
+     */
+    public static String orderKey(String orderNo) {
+        return RedisConstant.PREFIX_ORDER + RedisConstant.DETAIL+RedisConstant.ORDERNO +orderNo;
+    }
 }

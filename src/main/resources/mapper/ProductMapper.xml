@@ -53,6 +53,28 @@
         <result column="create_time" property="createTime"/>
         <result column="update_time" property="updateTime"/>
     </resultMap>
+    <update id="deductProductAndSpecStock">
+        UPDATE product p
+        INNER JOIN product_spec ps ON p.id = ps.product_id
+        SET
+        p.stock = p.stock - #{quantity},
+        ps.stock = ps.stock - #{quantity}
+        WHERE
+        p.id = #{productId}
+        AND ps.id = #{specId}
+        AND p.stock >= #{quantity}
+        AND ps.stock >= #{quantity}
+    </update>
+    <update id="restoreProductAndSpecStock">
+        UPDATE product p
+        INNER JOIN product_spec ps ON p.id = ps.product_id
+        SET
+        p.stock = p.stock + #{quantity},
+        ps.stock = ps.stock + #{quantity}
+        WHERE
+        p.id = #{productId}
+        AND ps.id = #{specId}
+    </update>
 
     <select id="selectByProductId" resultMap="ProductWithImageAndSpecResultMap">
         SELECT p.id                AS product_id,

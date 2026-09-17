@@ -45,9 +45,9 @@ rocketmq:
     group: my-producer-group
     send-message-timeout: 10000
   consumer:
-    group: my-consumer-group
-    message-model: BROADCASTING
-    pull-batch-size: 100
+    group: coupon-receive-group
+#    #    message-model: BROADCASTING #TODO：这个是不是要改
+#    pull-batch-size: 100
 
 jwt:
    # JWT密钥（敏感信息，dev配置中覆盖）

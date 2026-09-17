@@ -8,4 +8,13 @@
             #{id}
         </foreach>
     </select>
+    <select id="selectApplicableCategoryIds" resultType="java.lang.Long">
+        SELECT DISTINCT COALESCE(child.id, cc.category_id)
+        FROM coupon_category cc
+        JOIN category parent ON cc.category_id = parent.id
+        LEFT JOIN category child
+            ON child.parent_id = cc.category_id
+            AND parent.parent_id = 0
+        WHERE cc.coupon_id = #{couponId}
+    </select>
 </mapper>

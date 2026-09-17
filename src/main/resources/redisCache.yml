@@ -6,6 +6,7 @@ redis:
       product-detail-ttl: 86400 #商品详情缓存
       product-collection-ttl: 86400 #商品收藏列表缓存
       product-view-ttl: 86400 #商品浏览量缓存
+      order-ttl: 60 #订单取消时间，两分钟测试看看成功不
       cart-ttl: 86400 #购物车缓存
     count:
       hot-product-cache-size: 20 #热门商品缓存数量

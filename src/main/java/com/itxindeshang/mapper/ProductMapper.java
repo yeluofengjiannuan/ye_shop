@@ -7,6 +7,8 @@ import com.itxindeshang.pojo.vo.ProductSpecVO;
 import com.itxindeshang.pojo.vo.ProductVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 import java.util.List;
 
@@ -57,8 +59,14 @@ public interface ProductMapper extends BaseMapper<Product> {
 
     int countByIds(List<Long> productIds);
 
-    /*//TODO:这里是后面order的
+
+    @Select("select ps.id as specId ,ps.product_id,ps.stock,ps.price,p.name as productName, p.status as productStatus from product_spec ps inner join product p on p.id=ps.product_id")
     List<ProductSpecVO> selectSpecsBatch(List<Long> specIds);
 
-    int deductStock(Long productId, Long specId, Integer quantity);*/
+
+    int deductProductAndSpecStock(@Param("productId") Long productId, @Param("specId") Long specId, @Param("quantity") Integer quantity);
+
+    void restoreProductAndSpecStock(@Param("productId") Long productId,
+                                   @Param("specId") Long specId,
+                                   @Param("quantity") Integer quantity);
 }

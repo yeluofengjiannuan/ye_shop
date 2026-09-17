@@ -18,4 +18,5 @@ public class RedisCacheTtlProperties {
 
     private long cartTtl;
 
+    private long orderTtl;
 }
