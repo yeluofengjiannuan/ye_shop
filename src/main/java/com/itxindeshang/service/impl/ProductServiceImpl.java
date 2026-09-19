@@ -412,6 +412,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         String productDetailKey = RedisKeyGenerator.productDetail(updateProduct.getId());
         RedisConnector.delete(productDetailKey);
         //异步更新es
+        Product product = getById(productId);
+        mqProducerUtils.sendProductInsertData(product);
         return Result.success();
     }
 
