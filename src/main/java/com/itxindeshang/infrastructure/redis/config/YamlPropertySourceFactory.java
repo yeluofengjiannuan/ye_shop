@@ -1,4 +1,4 @@
-package com.itxindeshang.infrastructure.redis.confing;
+package com.itxindeshang.infrastructure.redis.config;
 
 import org.springframework.boot.env.YamlPropertySourceLoader;
 import org.springframework.core.env.PropertySource;
