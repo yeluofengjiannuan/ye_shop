@@ -25,6 +25,12 @@ spring:
       port: 6379
       database: 0
       password: ${spring.data.redis.password}
+  elasticsearch:
+    uris: http://192.168.100.128:9200
+    connection-timeout: 5s
+    socket-timeout: 10s
+    password: 123456 #开发环境就是你的密码
+    username: elastic #开发环境对应你的用户名
 mybatis-plus:
   type-aliases-package: com.itxindeshang.pojo.entity   # 实体类包路径
   global-config:

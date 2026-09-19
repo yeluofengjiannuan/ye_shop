@@ -1,6 +1,7 @@
 package com.itxindeshang.pojo.enums;
 
 import com.baomidou.mybatisplus.annotation.EnumValue;
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import lombok.Getter;
 
@@ -46,6 +47,16 @@ public enum CommonStatus {
         for (CommonStatus commonStatus : values()) {
             if (commonStatus.value.equals(value)) {
                 return commonStatus;
+            }
+        }
+        throw new IllegalArgumentException("无效的CommonStatus.value:" + value);
+    }
+
+    @JsonCreator
+    public static CommonStatus fromValue(String value) {
+        for (CommonStatus status : values()) {
+            if (status.value.equals(value)) {
+                return status;
             }
         }
         throw new IllegalArgumentException("无效的CommonStatus.value:" + value);
