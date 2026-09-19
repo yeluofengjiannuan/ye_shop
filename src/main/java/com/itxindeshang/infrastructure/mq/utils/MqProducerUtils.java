@@ -2,7 +2,9 @@ package com.itxindeshang.infrastructure.mq.utils;
 
 import com.itxindeshang.common.constant.MessageConstant;
 import com.itxindeshang.infrastructure.mq.constant.order.MqOrderConstant;
+import com.itxindeshang.infrastructure.mq.constant.product.MqProductConstant;
 import com.itxindeshang.pojo.entity.CouponReceiveMessage;
+import com.itxindeshang.pojo.entity.Product;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,4 +34,12 @@ public class MqProducerUtils {
     public void sendOrderPaySuccess(String orderNo) {
         rocketMQTemplate.convertAndSend(MqOrderConstant.ORDER_TOPIC+":"+MqOrderConstant.PAY_SUCCESS,orderNo);
     }
+
+    public void sendProductInsertData(Product product) {
+       rocketMQTemplate.convertAndSend(MqProductConstant.PRODUCT_TOPIC + ":" + MqProductConstant.INSERT, product);
+    }
+
+    /*public void sendProductOnShelf(Long productId) {
+        rocketMQTemplate.convertAndSend(MqProductConstant.PRODUCT_TOPIC + ":" + MqProductConstant.ON_SHELF, productId);
+    }*/
 }

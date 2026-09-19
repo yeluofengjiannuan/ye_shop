@@ -12,6 +12,7 @@ import com.itxindeshang.common.result.CursorCommonEntity;
 import com.itxindeshang.common.result.CursorCommonResult;
 import com.itxindeshang.common.result.Result;
 import com.itxindeshang.context.BaseContext;
+import com.itxindeshang.infrastructure.mq.utils.MqProducerUtils;
 import com.itxindeshang.infrastructure.redis.connect.RedisConnector;
 import com.itxindeshang.infrastructure.redis.connect.StringRedisConnector;
 import com.itxindeshang.infrastructure.redis.generator.RedisKeyGenerator;
@@ -75,6 +76,9 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     @Resource
     private ProductSpecMapper productSpecMapper;
 
+    @Resource
+    private MqProducerUtils mqProducerUtils;
+
     /**
      *  新增商品
      * @param productDTO
@@ -83,6 +87,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     @Transactional(rollbackFor = Exception.class)
     public Result<Long> addProduct(ProductDTO productDTO) {
         Product product = copyMapper.productDTOToProduct(productDTO);
+
         Category category = categoryService.getById(product.getCategoryId());
         List<ProductImage> images =productDTO.getImageUrls();
         List<ProductSpec> specList = productDTO.getSpecList();
@@ -99,6 +104,9 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             //TODO:事务只认异常，这里要抛异常
             throw new ProductException(MessageConstant.SQL_MESSAGE_SAVE_ERROR);
         }
+        product.setStatus(CommonStatus.INACTIVE);
+        product.setViewCount(DataConstant.ZERO_LONG);
+        product.setSalesCount(DataConstant.ZERO_LONG);
         boolean isSuccess = save(product);
         if (!isSuccess) {
             throw new ProductException(MessageConstant.SQL_MESSAGE_SAVE_ERROR);
@@ -128,6 +136,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
                 .setSql("price = (SELECT IFNULL(MIN(price), 0) FROM product_spec WHERE product_id = " + productId + ")")
                 .setSql("enterprise_price = (SELECT IFNULL(MIN(enterprise_price), 0) FROM product_spec WHERE product_id = " + productId + ")")
                 .update();
+        //生产环境的正确做法是用 RocketMQ 的事务消息，这里是异步保存es
+        mqProducerUtils.sendProductInsertData(product);
         return Result.success(productId);
     }
     /**
@@ -342,6 +352,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         if (!isSuccess) {
             return Result.error(MessageConstant.DATA_ERROR);
         }
+        //这里差消息异步发送更新es的status
+//        mqProducerUtils.sendProductOnShelf(productId);
         return Result.success();
     }
 
@@ -398,6 +410,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
 
         String productDetailKey = RedisKeyGenerator.productDetail(updateProduct.getId());
         RedisConnector.delete(productDetailKey);
+        //异步更新es
         return Result.success();
     }
 

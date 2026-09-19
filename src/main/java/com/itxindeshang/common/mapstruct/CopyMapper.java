@@ -1,5 +1,6 @@
 package com.itxindeshang.common.mapstruct;
 
+import com.itxindeshang.infrastructure.es.document.ProductDocument;
 import com.itxindeshang.pojo.UserInfo;
 import com.itxindeshang.pojo.dto.*;
 import com.itxindeshang.pojo.entity.*;
@@ -81,4 +82,6 @@ public interface CopyMapper {
     @Mapping(source = "order.receiverDistrict",target = "district")
     @Mapping(source = "order.receiverDetailAddress",target = "detailAddress")
     OrderAddressVO orderToOrderAddressVO(Order order);
+
+    ProductDocument productToProductDocument(Product product);
 }
