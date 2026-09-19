@@ -334,6 +334,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         String productDetailKey = RedisKeyGenerator.productDetail(productId);
         RedisConnector.delete(productDetailKey);
         //多余的key采取ttl自然过期策略
+        mqProducerUtils.sendProductUpdateStatus(productId,CommonStatus.INACTIVE);
         return Result.success();
     }
 
@@ -353,7 +354,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             return Result.error(MessageConstant.DATA_ERROR);
         }
         //这里差消息异步发送更新es的status
-//        mqProducerUtils.sendProductOnShelf(productId);
+        mqProducerUtils.sendProductUpdateStatus(productId,CommonStatus.ACTIVE);
         return Result.success();
     }
 
