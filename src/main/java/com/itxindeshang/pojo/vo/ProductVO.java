@@ -3,7 +3,10 @@ package com.itxindeshang.pojo.vo;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.itxindeshang.common.constant.DatePatternConstants;
 import com.itxindeshang.pojo.enums.CommonStatus;
+import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -13,7 +16,7 @@ public class ProductVO  {
     /**
      * 商品 ID
      */
-    private String id;
+    private Long id;
 
     /**
      * 商品名称

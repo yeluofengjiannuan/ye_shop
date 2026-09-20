@@ -3,6 +3,7 @@ package com.itxindeshang.pojo.enums;
 
 import com.itxindeshang.pojo.entity.Product;
 import com.itxindeshang.pojo.vo.ProductVO;
+import com.itxindeshang.pojo.vo.SimpleProductVO;
 import com.itxindeshang.util.DateUtils;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -15,10 +16,10 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public enum ProductSortTypeEnum {
     //TODO:sortfield换成那个product.field.---
-    DEFAULT("default", "sales_count DESC","sales_count", CommonSortTypeEnum.DESC,"默认按照销量排行"),
-    PRICE_ASC("priceAsc", "price ASC","price",CommonSortTypeEnum.ASC, "价格升序"),
-    PRICE_DESC("priceDesc", "price DESC", "price",CommonSortTypeEnum.DESC, "价格降序"),
-    NEWEST("newest", "update_time DESC","update_time",  CommonSortTypeEnum.DESC, "最新上架");
+    DEFAULT("default", "sales_count DESC",Product.Fields.salesCount, CommonSortTypeEnum.DESC,"默认按照销量排行"),
+    PRICE_ASC("priceAsc", "price ASC",Product.Fields.price,CommonSortTypeEnum.ASC, "价格升序"),
+    PRICE_DESC("priceDesc", "price DESC", Product.Fields.price,CommonSortTypeEnum.DESC, "价格降序"),
+    NEWEST("newest", "update_time DESC",Product.Fields.updateTime,  CommonSortTypeEnum.DESC, "最新上架");
     /**
      * 前端传的 String
      */
@@ -98,14 +99,14 @@ public enum ProductSortTypeEnum {
     /**
      *  获取末尾查询值
      * @param productSortTypeEnum 枚举类型
-     * @param product 商品
+     * @param simpleProductVO 商品
      * @return
      */
-    public static String getSortValueByProduct(@Validated ProductSortTypeEnum productSortTypeEnum , Product product){
+    public static String getSortValueByProduct(@Validated ProductSortTypeEnum productSortTypeEnum , SimpleProductVO simpleProductVO){
         switch (productSortTypeEnum){
-            case DEFAULT -> {return product.getSalesCount().toString();}//这个差了
-            case PRICE_ASC,PRICE_DESC -> {return product.getPrice().toString();}
-            case NEWEST -> {return DateUtils.formatLocalDateTime(product.getUpdateTime());}
+            case DEFAULT -> {return simpleProductVO.getSalesCount().toString();}//这个差了
+            case PRICE_ASC,PRICE_DESC -> {return simpleProductVO.getPrice().toString();}
+            case NEWEST -> {return DateUtils.formatLocalDateTime(simpleProductVO.getUpdateTime());}
         }
         throw new RuntimeException("非法 productSortTypeEnum 参数");
     }

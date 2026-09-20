@@ -12,6 +12,8 @@ import com.itxindeshang.common.result.CursorCommonEntity;
 import com.itxindeshang.common.result.CursorCommonResult;
 import com.itxindeshang.common.result.Result;
 import com.itxindeshang.context.BaseContext;
+import com.itxindeshang.infrastructure.es.document.ProductDocument;
+import com.itxindeshang.infrastructure.es.service.ProductDocumentService;
 import com.itxindeshang.infrastructure.mq.utils.MqProducerUtils;
 import com.itxindeshang.infrastructure.redis.connect.RedisConnector;
 import com.itxindeshang.infrastructure.redis.connect.StringRedisConnector;
@@ -26,6 +28,7 @@ import com.itxindeshang.pojo.entity.*;
 import com.itxindeshang.pojo.enums.CommonStatus;
 import com.itxindeshang.pojo.enums.ProductSortTypeEnum;
 import com.itxindeshang.pojo.vo.ProductVO;
+import com.itxindeshang.pojo.vo.SimpleProductVO;
 import com.itxindeshang.service.*;
 import com.itxindeshang.util.JacksonUtils;
 import jakarta.annotation.Resource;
@@ -78,6 +81,9 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
 
     @Resource
     private MqProducerUtils mqProducerUtils;
+
+    @Resource
+    private ProductDocumentService productDocumentService;
 
     /**
      *  新增商品
@@ -158,8 +164,9 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         String sortField = productSortTypeEnum.getSortField();
         String dbValue = productSortTypeEnum.getDbValue();//TODO:未使用字段，后续可以考虑删除或者功能复用
         boolean isAsc = productSortTypeEnum.getCommonSortTypeEnum().isAsc();
-        List<ProductVO> queryList = productMapper.getCategoryProductList(categoryId, sortField, sortId, sortValue, isAsc, querySize);
-        return getCursorCommonResult(queryList,querySize, productSortTypeEnum, sortType);
+//        List<ProductVO> queryList = productMapper.getCategoryProductList(categoryId, sortField, sortId, sortValue, isAsc, querySize);
+        return null;//FIXME：这里的游标记得处理
+//        return getCursorCommonResult(queryList,querySize, productSortTypeEnum, sortType);
     }
 
     /**
@@ -175,14 +182,15 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         String sortType = cursorCommonEntity.getSortType();
         Long sortId = cursorCommonEntity.getSortId();
         String sortValue = cursorCommonEntity.getSortValue();
+        //将sortType转成枚举
         ProductSortTypeEnum productSortTypeEnum = ProductSortTypeEnum.getByValue(sortType);
-        String sortField = productSortTypeEnum.getSortField();
+        //对sortValue进行格式化
         sortValue = ProductSortTypeEnum.filterFormatSortValue(productSortTypeEnum, sortValue);
-        boolean isAsc = productSortTypeEnum.getCommonSortTypeEnum().isAsc();
-        List<ProductVO> queryList = productMapper.searchProductList(sortField, sortValue,sortId, isAsc, querySize, keyword);
-
+        //es查询
+        List<ProductDocument> productDocuments = productDocumentService.searchByCursorByName(
+                querySize, productSortTypeEnum, sortValue, sortId, keyword);
+        List<SimpleProductVO> queryList =productDocuments.stream().map(copyMapper::ProductDocumentToSimpleProductVO).toList();
         return getCursorCommonResult(queryList,querySize, productSortTypeEnum, sortType);
-
     }
 
     /**
@@ -434,7 +442,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
      * @param sortType 排序种类字符串
      * @return 游标结果
      */
-    private Result<CursorCommonResult> getCursorCommonResult(List<ProductVO> queryList, Integer querySize, ProductSortTypeEnum productSortTypeEnum, String sortType) {
+    private Result<CursorCommonResult> getCursorCommonResult(List<SimpleProductVO> queryList, Integer querySize, ProductSortTypeEnum productSortTypeEnum, String sortType) {
         boolean isEnd = false;
         if (CollectionUtils.isEmpty(queryList)) {
             CursorCommonResult result = CursorCommonResult.builder()
@@ -446,13 +454,13 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         if (querySize > queryList.size()) {
             isEnd = true;
         }
-        ProductVO productVO = queryList.get(queryList.size() - 1);
-        Product endProduct = getById(productVO.getId());
-        String sortValueByProduct = ProductSortTypeEnum.getSortValueByProduct(productSortTypeEnum, endProduct);
+        SimpleProductVO simpleProductVO = queryList.get(queryList.size() - 1);
+//        Product endProduct = getById(productVO.getId());
+        String sortValueByProduct = ProductSortTypeEnum.getSortValueByProduct(productSortTypeEnum, simpleProductVO);
         CursorCommonEntity cursorCommonEntityResult = CursorCommonEntity.builder()
                 .sortType(sortType)
                 .querySize(querySize)
-                .sortId(endProduct.getId())
+                .sortId(simpleProductVO.getId())
                 .sortValue(sortValueByProduct)
                 .build();
         CursorCommonResult result = CursorCommonResult.builder()

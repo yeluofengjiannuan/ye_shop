@@ -4,14 +4,18 @@ package com.itxindeshang.infrastructure.es.service.impl;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import com.itxindeshang.infrastructure.es.document.ProductDocument;
 import com.itxindeshang.infrastructure.es.enums.EsIndexEnum;
+import com.itxindeshang.infrastructure.es.repository.ProductEsRepository;
 import com.itxindeshang.infrastructure.es.service.ProductDocumentService;
 import com.itxindeshang.pojo.enums.CommonStatus;
+import com.itxindeshang.pojo.enums.ProductSortTypeEnum;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 
 @Component
@@ -21,6 +25,8 @@ public class ProductDocumentServiceImpl implements ProductDocumentService {
 
 
     private final ElasticsearchClient esClient;
+
+    private final ProductEsRepository productEsRepository;
 
     /**
      * 保存/更新商品到ES（id存在则覆盖，不存在则新增）
@@ -56,5 +62,25 @@ public class ProductDocumentServiceImpl implements ProductDocumentService {
             log.error("ES更新商品状态失败, productId={}", productId, e);
             throw new RuntimeException("ES更新状态失败", e);
         }
+    }
+
+    /**
+     * 根据商品关键词进行查询
+     * @param limit 查询数
+     * @param productSortTypeEnum 商品排序枚举
+     * @param sortValue 游标开始值
+     * @param productId 商品 id
+     * @param keyword 关键词
+     * @return 查询文档列表
+     */
+    @Override
+    public List<ProductDocument> searchByCursorByName(Integer limit, ProductSortTypeEnum productSortTypeEnum, String sortValue, Long productId, String keyword) {
+        //首次进行游标查询
+        if (Objects.isNull(sortValue) || Objects.isNull(productId)) {
+            return productEsRepository.searchLimitByProductSortTypeAndProductName(productSortTypeEnum, keyword, limit);
+        }
+        //游标查询
+        return productEsRepository.searchCursorByProductSortTypeAndProductName(productSortTypeEnum, keyword, limit, sortValue, productId);
+
     }
 }

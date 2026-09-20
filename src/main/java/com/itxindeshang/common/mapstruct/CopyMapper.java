@@ -4,9 +4,7 @@ import com.itxindeshang.infrastructure.es.document.ProductDocument;
 import com.itxindeshang.pojo.UserInfo;
 import com.itxindeshang.pojo.dto.*;
 import com.itxindeshang.pojo.entity.*;
-import com.itxindeshang.pojo.vo.CouponUserVO;
-import com.itxindeshang.pojo.vo.OrderAddressVO;
-import com.itxindeshang.pojo.vo.OrderWithItemVO;
+import com.itxindeshang.pojo.vo.*;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
@@ -84,4 +82,8 @@ public interface CopyMapper {
     OrderAddressVO orderToOrderAddressVO(Order order);
 
     ProductDocument productToProductDocument(Product product);
+
+//    ProductVO ProductDocumentToProductVO(ProductDocument productDocument);
+
+    SimpleProductVO ProductDocumentToSimpleProductVO(ProductDocument productDocument);
 }
