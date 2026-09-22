@@ -30,6 +30,7 @@ import com.itxindeshang.pojo.dto.ProductUpdateDTO;
 import com.itxindeshang.pojo.entity.*;
 import com.itxindeshang.pojo.enums.CommonStatus;
 import com.itxindeshang.pojo.enums.ProductSortTypeEnum;
+import com.itxindeshang.pojo.vo.ProductSpecVO;
 import com.itxindeshang.pojo.vo.SimpleProductVO;
 import com.itxindeshang.service.*;
 import com.itxindeshang.util.BloomFilterUtils;
@@ -312,7 +313,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             }
         }
 // ================= 第三步：处理收藏状态 =================
-// 【修复】：同样加上 null 保护，防止空指针异常
+// 【修复】：同样加上 null 保护，防止空指针异常 TODO：这里有那个缓存穿透问题
         if (resultProduct != null) {
             resultProduct.setIsCollection(CommonStatus.INACTIVE.getNumber());
             if (userIdLong != null) {
@@ -487,6 +488,53 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         List<ProductDocument> productDocumentlist = productDocumentResultList.stream().limit(limit).toList();
         List<SimpleProductVO> list = productDocumentlist.stream().map(copyMapper::ProductDocumentToSimpleProductVO).toList();
         return Result.success(list);
+    }
+
+    /**
+     * 根据商品id和规格id查询商品规格价格
+     * @param productId 商品id
+     * @param specId 规格id
+     */
+    @Override
+    public Result<?> getProductSpecPrice(Long productId, Long specId) {
+        //布隆过滤器防止缓存穿透
+        if (!bloomFilterUtils.contains(productId)) {
+            return Result.error(MessageConstant.DATA_ERROR);
+        }
+        String key = RedisKeyGenerator.productDetail(productId);
+        Product product = RedisConnector.getHashObject(key, Product.class);
+        //redis查询数据
+        List<ProductSpec> productSpecList;
+        //如果查询不到，进行数据库查询
+        if (product != null) {
+             productSpecList =product.getSpecList();
+        } else{
+            product = productMapper.selectByProductId(productId);
+            //写入缓存
+            RedisConnector.setHashObject(key, product);
+            productSpecList = product.getSpecList();
+        }
+        if (CollectionUtils.isEmpty(productSpecList)) {
+            return Result.error(MessageConstant.DATA_ERROR);
+        }
+        //初始化返回结果
+        ProductSpec resultProductSpec = null;
+        for (ProductSpec productSpec : productSpecList) {
+            if (productSpec.getId().equals(specId)){
+                resultProductSpec = productSpec;
+                break;
+            }
+        }
+        //判断是否存在这个规格
+        if (Objects.isNull(resultProductSpec)) {
+            //商品与规格有改动
+            return Result.error(MessageConstant.DATA_ERROR);
+        }
+        //处理为VO
+        ProductSpecVO productSpecVO = copyMapper.productSpecToProductSpecVO(resultProductSpec);
+        productSpecVO.setProductName(product.getName());
+        productSpecVO.setProductStatus(product.getStatus().getNumber());
+        return Result.success(productSpecVO);
     }
 
 

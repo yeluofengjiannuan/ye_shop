@@ -31,4 +31,6 @@ public interface ProductService extends IService<Product> {
     int countByIds(List<Long> productIds);
 
     Result<List<SimpleProductVO>> getHotProduct(Integer limit);
+
+    Result<?> getProductSpecPrice(Long productId, Long specId);
 }

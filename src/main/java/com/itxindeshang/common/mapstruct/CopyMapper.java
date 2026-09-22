@@ -86,4 +86,6 @@ public interface CopyMapper {
 //    ProductVO ProductDocumentToProductVO(ProductDocument productDocument);
 
     SimpleProductVO ProductDocumentToSimpleProductVO(ProductDocument productDocument);
+
+    ProductSpecVO productSpecToProductSpecVO(ProductSpec resultProductSpec);
 }

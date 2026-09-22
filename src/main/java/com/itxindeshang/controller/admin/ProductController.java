@@ -83,4 +83,15 @@ public class ProductController {
     public Result<List<SimpleProductVO>> getHotProduct(@RequestParam(name = "limit", defaultValue = "10") Integer limit){
         return productService.getHotProduct(limit);
     }
+
+    /**
+     * 查询商品规格价格
+     * @param productId 商品id
+     * @param specId 规格id
+     * @return
+     */
+    @GetMapping("/spec/price")
+    public Result<?> getProductSpecPrice( Long productId,Long specId){
+        return productService.getProductSpecPrice(productId,specId);
+    }
 }
