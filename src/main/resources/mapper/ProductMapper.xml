@@ -13,6 +13,14 @@
         <result column="spec_update_time" property="updateTime"/>
     </resultMap>
 
+    <resultMap id="ProductImageResultMap" type="com.itxindeshang.pojo.entity.ProductImage">
+        <id column="image_id" property="id"/>
+        <result column="image_product_id" property="productId"/>
+        <result column="image_url" property="imageUrl"/>
+        <result column="image_sort" property="sort"/>
+        <result column="image_create_time" property="createTime"/>
+    </resultMap>
+
     <resultMap id="ProductWithImageAndSpecResultMap" type="com.itxindeshang.pojo.entity.Product">
         <id column="product_id" property="id"/>
         <result column="category_id" property="categoryId"/>
@@ -28,10 +36,9 @@
         <result column="status" property="status"/>
         <result column="create_time" property="createTime"/>
         <result column="update_time" property="updateTime"/>
-        <collection property="imageUrls" ofType="java.lang.String">
-            <result column="image_url"/>
+        <collection property="imageUrls" ofType="com.itxindeshang.pojo.entity.ProductImage"
+                    resultMap="ProductImageResultMap">
         </collection>
-
         <collection property="specList" ofType="com.itxindeshang.pojo.entity.ProductSpec"
                     resultMap="ProductSpecResultMap">
         </collection>
@@ -92,7 +99,8 @@
         p.create_time,
         p.update_time,
         pi.image_url,
-        pi.sort,
+        pi.sort            AS image_sort,
+        pi.create_time      AS image_create_time,
         ps.id               AS spec_id,
         ps.product_id       AS spec_product_id,
         ps.spec_text,
