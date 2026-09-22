@@ -6,6 +6,7 @@ import com.itxindeshang.common.result.Result;
 import com.itxindeshang.pojo.dto.ProductDTO;
 import com.itxindeshang.pojo.dto.ProductUpdateDTO;
 import com.itxindeshang.pojo.vo.SimpleProductVO;
+import com.itxindeshang.service.ProductSearchKeywordService;
 import com.itxindeshang.service.ProductService;
 import jakarta.annotation.Resource;
 import org.springframework.validation.annotation.Validated;
@@ -18,6 +19,9 @@ import java.util.List;
 public class ProductController {
     @Resource
     private ProductService productService;
+
+    @Resource
+    private ProductSearchKeywordService productSearchKeywordService;
 
     /**
      * 新增商品
@@ -94,4 +98,14 @@ public class ProductController {
     public Result<?> getProductSpecPrice( Long productId,Long specId){
         return productService.getProductSpecPrice(productId,specId);
     }
+
+    /**
+     * 用户获取热门搜索关键词列表
+     */
+    @GetMapping("/user/keyword/list")
+    public Result<List<String>> getProductSearchKeywordListUser() {
+        return productSearchKeywordService.getProductSearchKeywordListUser();
+    }
+
+    
 }

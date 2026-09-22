@@ -37,7 +37,7 @@ public class CaffenineConfig {
         return Caffeine.newBuilder()
                 .initialCapacity(1)
                 .maximumSize(1)
-                // .expireAfterWrite(12, TimeUnit.HOURS)
+                // .expireAfterWrite(12, TimeUnit.HOURS)//过期策略 12小时过期
                 .build(new CacheLoader<>() {
                            @Override
                            public @Nullable List<String> load(String key) throws IllegalArgumentException {
@@ -50,24 +50,7 @@ public class CaffenineConfig {
                 );
     }
 
-    /**
-     *分类树(一级分类,二级分类)缓存
-     *//*
-    @Bean
-    public LoadingCache<String, List<com.itxindeshang.pojo.entity.Category>> categoryTreeCache() {
-        return Caffeine.newBuilder()
-                .initialCapacity(1)
-                .maximumSize(1)
-                .build(new CacheLoader<>() {
-                    @Override
-                    public @Nullable List<Category> load(String key) throws IllegalArgumentException {
-                        if (StringUtils.equals(key, CaffeineConstant.CACHE_KEY_CATEGORY_TREE)) {
-//                            return categoryService.getCategroytreeCache();
-                        }
-                        throw new IllegalArgumentException(CaffeineConstant.CACHE_KEY_NOT_VALID_ERROR);
-                    }
-                });
-    }*/
+
     //TODO:把这个方法抽出来，utils也好
     private List<String> getHotProductSearchKeywordListUser() {
         LambdaQueryWrapper<ProductSearchKeyword> productSearchKeywordLambdaQueryWrapper = new LambdaQueryWrapper<>();
@@ -95,7 +78,24 @@ public class CaffenineConfig {
                     }
                 });
     }*/
-
+    /**
+     *分类树(一级分类,二级分类)缓存
+     *//*
+    @Bean
+    public LoadingCache<String, List<com.itxindeshang.pojo.entity.Category>> categoryTreeCache() {
+        return Caffeine.newBuilder()
+                .initialCapacity(1)
+                .maximumSize(1)
+                .build(new CacheLoader<>() {
+                    @Override
+                    public @Nullable List<Category> load(String key) throws IllegalArgumentException {
+                        if (StringUtils.equals(key, CaffeineConstant.CACHE_KEY_CATEGORY_TREE)) {
+//                            return categoryService.getCategroytreeCache();
+                        }
+                        throw new IllegalArgumentException(CaffeineConstant.CACHE_KEY_NOT_VALID_ERROR);
+                    }
+                });
+    }*/
     // 树缓存
     @Bean
     public Cache<String, List<Category>> categoryTreeCache() {

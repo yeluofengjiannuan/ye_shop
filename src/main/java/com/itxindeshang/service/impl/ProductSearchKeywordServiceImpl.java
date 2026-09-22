@@ -22,9 +22,12 @@ public class ProductSearchKeywordServiceImpl extends ServiceImpl<ProductSearchKe
      * @return
      */
     @Override
-    public Result getProductSearchKeywordListUser() {
+    public Result<List<String>> getProductSearchKeywordListUser() {
+        //caffeine查询缓存
         List<String> hotProductSearchKeyword = caffeineUtils.getHotProductSearchKeyword();
+        //打乱顺序
         Collections.shuffle(hotProductSearchKeyword);
+        //查询5条数据
         List<String> resultList = hotProductSearchKeyword.stream().limit(5).toList();
         return Result.success(resultList);
     }
