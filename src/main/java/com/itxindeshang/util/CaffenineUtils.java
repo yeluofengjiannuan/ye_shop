@@ -25,6 +25,13 @@ public class CaffenineUtils {
     }
 
     /**
+     * 清除热门搜索关键词
+     */
+    public void invalidateHotProductSearchKeywordCache() {
+        hotProductSearchKeywordCache.invalidate(CaffeineConstant.CACHE_KEY_HOT_PRODUCT_SEARCH_KEYWORD);
+    }
+
+    /**
      * 查询分类树
      * @return
      *//*

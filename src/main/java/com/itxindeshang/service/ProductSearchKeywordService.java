@@ -12,4 +12,6 @@ public interface ProductSearchKeywordService extends IService<ProductSearchKeywo
    Result<List<String>> getProductSearchKeywordListUser();
 
     Result<List<ProductSearchKeyword>> getProductSearchKeywordListAdmin();
+
+    Result<?> updateProductSearchListAdmin(List<ProductSearchKeyword> productSearchKeywordList);
 }

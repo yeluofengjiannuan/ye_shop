@@ -115,4 +115,14 @@ public class ProductController {
     public Result<List<ProductSearchKeyword>> getProductSearchKeywordListAdmin() {
         return productSearchKeywordService.getProductSearchKeywordListAdmin();
     }
+
+    /**
+     * 管理员修改搜索关键词
+     * @param productSearchKeywordList
+     * @return
+     */
+    @PutMapping("/admin/keyword/update")
+    public Result<?> updateProductSearchListAdmin(@RequestBody List<ProductSearchKeyword> productSearchKeywordList){
+        return productSearchKeywordService.updateProductSearchListAdmin(productSearchKeywordList);
+    }
 }
