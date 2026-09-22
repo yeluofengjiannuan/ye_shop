@@ -32,6 +32,7 @@ import com.itxindeshang.pojo.enums.CommonStatus;
 import com.itxindeshang.pojo.enums.ProductSortTypeEnum;
 import com.itxindeshang.pojo.vo.SimpleProductVO;
 import com.itxindeshang.service.*;
+import com.itxindeshang.util.BloomFilterUtils;
 import com.itxindeshang.util.JacksonUtils;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -97,6 +98,9 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     @Resource
     private RedisBucketTtlProperties redisBucketTtlProperties;
 
+    @Resource
+    private BloomFilterUtils bloomFilterUtils;
+
     /**
      *  新增商品
      * @param productDTO
@@ -155,6 +159,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
                 .setSql("enterprise_price = (SELECT IFNULL(MIN(enterprise_price), 0) FROM product_spec WHERE product_id = " + productId + ")")
                 .update();
         //生产环境的正确做法是用 RocketMQ 的事务消息，这里是异步保存es
+        //添加id布隆过滤器进
+        bloomFilterUtils.add(productId);
         mqProducerUtils.sendProductInsertData(product);
         return Result.success(productId);
     }
@@ -213,6 +219,9 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
      */
     @Override
     public Result getProductDetail(Long productId) {
+        if (!bloomFilterUtils.contains(productId)) {
+            return Result.error(MessageConstant.PRODUCT_NOT_FOUND);
+        }
         //TODO:这里要增加浏览量的，redis储存加异步增加
         //方案：uv:product:{id}:{今天日期} {userId},ttl 7天吗，还要考虑异步存硬件如clickHouse，看来得后续rocketmq补充功能了,那现在就先在第一次查出redis的情况下先存sql
         //这个常量思考下
