@@ -64,5 +64,6 @@ public class MessageConstant {
     public static final String COUPON_STATUS_ERROR = "优惠券状态异常，锁定失败";
     public static final String ORDER_NOT_EXIST = "订单不存在";
     public static final String ORDER_NOT_CANCEL = "订单不处于可以取消状态";
-    public static final Object ORDER_PROCESSED = "订单已处理";
+    public static final String ORDER_PROCESSED = "订单已处理";
+    public static final String EXCEED_MAX_HOT_PRODUCT_LIMIT  = "超出热门商品最大缓存数量";
 }

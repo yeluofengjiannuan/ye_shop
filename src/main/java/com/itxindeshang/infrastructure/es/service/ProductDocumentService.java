@@ -22,4 +22,11 @@ public interface ProductDocumentService {
      * @return 查询文档列表
      */
     List<ProductDocument> searchByCursorByName(Integer limit, ProductSortTypeEnum productSortTypeEnum ,String sortValue, Long productId, String keyword);
+
+    /**
+     * 查询指定数量的热门商品
+     * @param limit 查询数量
+     * @return 热门商品文档列表
+     */
+    List<ProductDocument> searchLimitHotProductDocument(Integer limit);
 }

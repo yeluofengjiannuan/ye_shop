@@ -1,6 +1,7 @@
 package com.itxindeshang.infrastructure.es.repository;
 
 import com.itxindeshang.infrastructure.es.document.ProductDocument;
+import com.itxindeshang.pojo.enums.CommonSortTypeEnum;
 import com.itxindeshang.pojo.enums.ProductSortTypeEnum;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -27,5 +28,14 @@ public interface ProductEsRepository {
      * @return 商品文档列表
      */
     List<ProductDocument> searchCursorByProductSortTypeAndProductName(ProductSortTypeEnum productSortTypeEnum, String keyword, Integer limit, String sortValue, Long productId);
+
+    /**
+     * 根据字段指定排序 查询指定数量商品文档
+     * @param limit 查询数
+     * @param fieldName 字段名
+     * @param commonSortTypeEnum 排序顺序
+     * @return 商品文档列表
+     */
+    List<ProductDocument> searchLimitOrderByField(Integer limit, String fieldName, CommonSortTypeEnum commonSortTypeEnum);
 
 }

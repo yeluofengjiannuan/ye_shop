@@ -35,5 +35,15 @@ public class RedisConstant {
     public static final String ACTIVITY = "activity";
     public static final String PREFIX_ORDER ="order:";
     public static final String ORDERNO = "orderNo:";
+    public static final String HOT = "hot";
+    public static final String ID = "id:";
+
+
+    /**
+     * Bucket 读写标记前缀（仅用于 Redisson RBucket 锁标记，不可与业务数据 key 混用）
+     */
+    public static final String BUCKET_SIGN_PREFIX = "bucket:sign:";
+    public static final String PREFIX_COPY = "copy:";
+    public static final String BUCKET_PREFIX = "bucket:";
 }
 

@@ -6,6 +6,7 @@ import com.itxindeshang.infrastructure.es.document.ProductDocument;
 import com.itxindeshang.infrastructure.es.enums.EsIndexEnum;
 import com.itxindeshang.infrastructure.es.repository.ProductEsRepository;
 import com.itxindeshang.infrastructure.es.service.ProductDocumentService;
+import com.itxindeshang.pojo.enums.CommonSortTypeEnum;
 import com.itxindeshang.pojo.enums.CommonStatus;
 import com.itxindeshang.pojo.enums.ProductSortTypeEnum;
 import lombok.RequiredArgsConstructor;
@@ -83,4 +84,14 @@ public class ProductDocumentServiceImpl implements ProductDocumentService {
         return productEsRepository.searchCursorByProductSortTypeAndProductName(productSortTypeEnum, keyword, limit, sortValue, productId);
 
     }
+
+    /**
+     * 查询指定数量的热门商品
+     * @param limit 查询数量
+     * @return 热门商品文档列表
+     */
+    @Override
+    public List<ProductDocument> searchLimitHotProductDocument(Integer limit) {
+        //TODO: 第一版先用销售额，后续我的思路是saleCount和viewCount(7天内吧)
+        return productEsRepository.searchLimitOrderByField(limit,ProductDocument.Fields.salesCount, CommonSortTypeEnum.DESC);    }
 }

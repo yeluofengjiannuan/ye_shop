@@ -3,9 +3,10 @@ package com.itxindeshang.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.itxindeshang.common.constant.BucketConstant;
 import com.itxindeshang.common.constant.DataConstant;
 import com.itxindeshang.common.constant.MessageConstant;
-import com.itxindeshang.common.exception.BusinessException;
 import com.itxindeshang.common.exception.ProductException;
 import com.itxindeshang.common.mapstruct.CopyMapper;
 import com.itxindeshang.common.result.CursorCommonEntity;
@@ -15,9 +16,11 @@ import com.itxindeshang.context.BaseContext;
 import com.itxindeshang.infrastructure.es.document.ProductDocument;
 import com.itxindeshang.infrastructure.es.service.ProductDocumentService;
 import com.itxindeshang.infrastructure.mq.utils.MqProducerUtils;
+import com.itxindeshang.infrastructure.redis.config.RedisBucketTtlProperties;
 import com.itxindeshang.infrastructure.redis.connect.RedisConnector;
 import com.itxindeshang.infrastructure.redis.connect.StringRedisConnector;
 import com.itxindeshang.infrastructure.redis.generator.RedisKeyGenerator;
+import com.itxindeshang.infrastructure.redis.properties.RedisCacheCountProperties;
 import com.itxindeshang.infrastructure.redis.properties.RedisCacheTtlProperties;
 import com.itxindeshang.mapper.ProductImageMapper;
 import com.itxindeshang.mapper.ProductMapper;
@@ -27,21 +30,24 @@ import com.itxindeshang.pojo.dto.ProductUpdateDTO;
 import com.itxindeshang.pojo.entity.*;
 import com.itxindeshang.pojo.enums.CommonStatus;
 import com.itxindeshang.pojo.enums.ProductSortTypeEnum;
-import com.itxindeshang.pojo.vo.ProductVO;
 import com.itxindeshang.pojo.vo.SimpleProductVO;
 import com.itxindeshang.service.*;
 import com.itxindeshang.util.JacksonUtils;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.redisson.api.RBucket;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+
+import static java.lang.Thread.sleep;
 
 @Slf4j
 @Service
@@ -84,6 +90,12 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
 
     @Resource
     private ProductDocumentService productDocumentService;
+
+    @Resource
+    private RedisCacheCountProperties redisCacheCountProperties;
+
+    @Resource
+    private RedisBucketTtlProperties redisBucketTtlProperties;
 
     /**
      *  新增商品
@@ -207,7 +219,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         /*if (StringUtils.isBlank(productId)) {
             return Result.error(MessageConstant.TOM_CAT_ERROR);
         }*/
-        String userId = BaseContext.getUserId();
+        String userId  = BaseContext.getUserId();
         Long userIdLong = StringUtils.isNotBlank(userId) ? Long.valueOf(userId) : null;
         //第一步：查商品详情缓存
         String productDetailKey = RedisKeyGenerator.productDetail(productId);
@@ -249,7 +261,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
                     }
                 } else {
                     // 没抢到锁，休眠重试
-                    Thread.sleep(50);
+                    sleep(50);
                     Map<String, Object> retryMap = RedisConnector.opsForHash().entries(productDetailKey);
                     if (!retryMap.isEmpty() && retryMap.size() > 1) {
                         resultProduct = JacksonUtils.fromMap(retryMap, Product.class);
@@ -435,6 +447,41 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     }
 
     /**
+     * 获取热门商品
+     */
+    @Override
+    public Result<List<SimpleProductVO>> getHotProduct(Integer limit) {
+        if (limit > redisCacheCountProperties.getHotProductCacheSize()) {
+            throw new RuntimeException(MessageConstant.EXCEED_MAX_HOT_PRODUCT_LIMIT);
+        }
+        //从redis里取出热门商品及其id
+        List<ProductDocument> hotProductList = getHotProductList();
+        List<Long> hotProductIdList =getHotProductIdList();
+        //TODO 这里后续优化
+        if (hotProductList == null) {
+            hotProductList = Collections.emptyList();
+        }
+        if (hotProductIdList == null) {
+            hotProductIdList = Collections.emptyList();
+        }
+        //热门商品本身无序，利用idList进行排序
+        HashMap<Long,ProductDocument> map = new HashMap<>(hotProductList.size());
+        for (ProductDocument productDocument : hotProductList) {
+            map.put(productDocument.getId(),productDocument);
+        }
+        //创建一个arraylist来存放最终结果
+        List<ProductDocument> productDocumentResultList = new ArrayList<>(hotProductIdList.size());
+        for (Long id : hotProductIdList) {
+            ProductDocument productDocument = map.get(id);
+            productDocumentResultList.add(productDocument);
+        }
+        List<ProductDocument> productDocumentlist = productDocumentResultList.stream().limit(limit).toList();
+        List<SimpleProductVO> list = productDocumentlist.stream().map(copyMapper::ProductDocumentToSimpleProductVO).toList();
+        return Result.success(list);
+    }
+
+
+    /**
      * 游标结果封装
      * @param queryList 查询列表
      * @param querySize 查询数量
@@ -469,5 +516,120 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
                 .cursorCommonEntity(cursorCommonEntityResult)
                 .build();
         return Result.success(result);
+    }
+
+    /**
+     * 获取热门商品 (采用双缓存 + 读写标记)
+     * @return 商品文档列表
+     */
+    private List<ProductDocument> getHotProductList() {
+        //构造Bucket对象
+        String bucketSignKey = RedisKeyGenerator.BucketSign();
+        RBucket<BucketConstant.BucketSign> bucket = redissonClient.getBucket(bucketSignKey);
+        //判断是否有在读线程
+        if (!bucket.isExists() || BucketConstant.BucketThreadType.READ_THREAD.equals(bucket.get().bucketThreadType())) {
+            //创建一个读写标记，并使用UUID防止篡改
+            BucketConstant.BucketSign bucketSign = new BucketConstant.BucketSign(
+                    BucketConstant.BucketThreadType.READ_THREAD,
+                    UUID.randomUUID().toString()
+            );
+            try {
+                bucket.set(bucketSign, Duration.ofSeconds(redisBucketTtlProperties.getHotProductReadBucketTtl()));
+//                防止读线程挂了标记永远不删，导致写线程一直等
+                String dataKey = RedisKeyGenerator.hotProductKey();
+                return RedisConnector.opsForHash()
+                        .entries(dataKey)
+                        .values()
+                        .stream()
+                        .map(o -> (ProductDocument) o)
+                        .collect(Collectors.toList());
+            } catch (Exception e) {
+                log.error("查询redis热门商品主数据失败", e);
+            } finally {
+                //清除标记
+                if (bucket.isExists() && bucketSign.equals(bucket.get())) {
+                    bucket.delete();
+                }
+            }
+        } else {
+            //通过副本拷贝获取数据
+            String signCopyKey = RedisKeyGenerator.BucketSignCopy();
+            RBucket<BucketConstant.BucketSign> bucketCopy = redissonClient.getBucket(signCopyKey);
+            BucketConstant.BucketSign bucketSign = new BucketConstant.BucketSign(
+                    BucketConstant.BucketThreadType.READ_THREAD,
+                    UUID.randomUUID().toString()
+            );
+            try {
+                bucketCopy.set(bucketSign, Duration.ofSeconds(redisBucketTtlProperties.getHotProductReadBucketTtl()));
+                String dataCopyKey = RedisKeyGenerator.copyHotProductKey();
+                return RedisConnector.opsForHash()
+                        .entries(dataCopyKey)
+                        .values()
+                        .stream()
+                        .map(o -> (ProductDocument) o)
+                        .collect(Collectors.toList());
+            } catch (Exception e) {
+                log.error("查询redis热门商品副本数据失败", e);
+            } finally {
+                if (bucketCopy.isExists() && bucketSign.equals(bucketCopy.get())) {
+                    bucketCopy.delete();
+                }
+            }
+        }
+        return Collections.emptyList();
+    }
+
+    /**
+     *
+     */
+    private List<Long> getHotProductIdList() {
+        String idSignKey = RedisKeyGenerator.idSignKey();
+        RBucket<BucketConstant.BucketSign> bucket = redissonClient.getBucket(idSignKey);
+        if (!bucket.isExists() || BucketConstant.BucketThreadType.READ_THREAD.equals(bucket.get().bucketThreadType())) {
+            String idListKey = RedisKeyGenerator.idListKey();
+            BucketConstant.BucketSign bucketSign = new BucketConstant.BucketSign(
+                    BucketConstant.BucketThreadType.READ_THREAD,
+                    UUID.randomUUID().toString()
+            );
+            try {
+                bucket.set(bucketSign, Duration.ofSeconds(redisBucketTtlProperties.getHotProductReadBucketTtl()));
+                List<Long> result = (List<Long>)RedisConnector.opsForValue().get(idListKey);
+                if (result == null) {
+                    return Collections.emptyList();
+                }
+                return result;
+            } catch (Exception e) {
+                log.error("查询redis热门商品ID列表失败", e);
+                RedisConnector.delete(idListKey);
+            } finally {
+                if (bucket.isExists() && bucketSign.equals(bucket.get())) {
+                    bucket.delete();
+                }
+            }
+        } else {
+            String idSignCopyKey = RedisKeyGenerator.idSignCopyKey();
+            String idListCopyKey = RedisKeyGenerator.idListCopyKey();
+            RBucket<BucketConstant.BucketSign> bucketCopy = redissonClient.getBucket(idSignCopyKey);
+            BucketConstant.BucketSign bucketSign = new BucketConstant.BucketSign(
+                    BucketConstant.BucketThreadType.READ_THREAD,
+                    UUID.randomUUID().toString()
+            );
+            try {
+                bucketCopy.set(bucketSign, Duration.ofSeconds(redisBucketTtlProperties.getHotProductReadBucketTtl()));
+                List<Long> result = (List<Long>)RedisConnector.opsForValue().get(idListCopyKey);
+                if (result == null) {
+                    return Collections.emptyList();
+                }
+                return result;
+            } catch (Exception e) {
+                log.error("查询redis热门商品ID副本列表失败", e);
+                RedisConnector.delete(idListCopyKey);
+            } finally {
+                if (bucketCopy.isExists() && bucketSign.equals(bucketCopy.get())) {
+                    bucketCopy.delete();
+                }
+            }
+        }
+        return Collections.emptyList();
     }
 }

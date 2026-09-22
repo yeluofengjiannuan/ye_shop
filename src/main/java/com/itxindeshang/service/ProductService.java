@@ -7,6 +7,7 @@ import com.itxindeshang.common.result.Result;
 import com.itxindeshang.pojo.dto.ProductDTO;
 import com.itxindeshang.pojo.dto.ProductUpdateDTO;
 import com.itxindeshang.pojo.entity.Product;
+import com.itxindeshang.pojo.vo.SimpleProductVO;
 import jakarta.validation.Valid;
 
 import java.util.List;
@@ -28,4 +29,6 @@ public interface ProductService extends IService<Product> {
     Result updateProduct(ProductUpdateDTO productUpdateDTO);
 
     int countByIds(List<Long> productIds);
+
+    Result<List<SimpleProductVO>> getHotProduct(Integer limit);
 }

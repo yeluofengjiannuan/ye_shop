@@ -1,6 +1,7 @@
 package com.itxindeshang.infrastructure.redis.generator;
 
 import com.itxindeshang.infrastructure.redis.constant.key.RedisConstant;
+import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDate;
 
@@ -216,5 +217,96 @@ public class RedisKeyGenerator {
      */
     public static String orderKey(String orderNo) {
         return RedisConstant.PREFIX_ORDER + RedisConstant.DETAIL+RedisConstant.ORDERNO +orderNo;
+    }
+
+    /**
+     * BucketSign
+     *  bucket:sign: +product:+ hot
+     */
+    public static String BucketSign() {
+        return  RedisConstant.BUCKET_SIGN_PREFIX + RedisConstant.PREFIX_PRODUCT + RedisConstant.HOT;
+    }
+
+    /**
+     * BucketSignCopy
+     *  bucket:sign:+copy: +product:+ hot
+     */
+    public static String BucketSignCopy() {
+        return  RedisConstant.BUCKET_SIGN_PREFIX + RedisConstant.PREFIX_COPY + RedisConstant.PREFIX_PRODUCT + RedisConstant.HOT;
+    }
+
+    /**
+     * hotProduct
+     * product:+hot
+     * @return
+     */
+    public static String hotProductKey() {
+        return RedisConstant.PREFIX_PRODUCT + RedisConstant.HOT;
+    }
+    /**
+     * copyHotProduct
+     * copy:+  product:+hot
+     */
+    public static String copyHotProductKey() {
+        return RedisConstant.PREFIX_COPY +RedisConstant.PREFIX_PRODUCT +RedisConstant.HOT;
+    }
+
+    /**
+     * idSignKey
+     * bucket:sign: +product + hot +: +idList
+     */
+    public static String idSignKey() {
+        return RedisConstant.BUCKET_SIGN_PREFIX + RedisConstant.PREFIX_PRODUCT + RedisConstant.HOT + ":" + RedisConstant.ID_LIST;
+    }
+
+    /**
+     * idListKey
+     * product: + hot +idList
+     */
+    public static String idListKey() {
+        return RedisConstant.PREFIX_PRODUCT + RedisConstant.HOT + ":" + RedisConstant.ID_LIST;
+    }
+
+    /**
+     * idSignCopyKey
+     * bucket:sign: +copy: +product + hot +: +idList
+     */
+    public static String idSignCopyKey() {
+        return RedisConstant.BUCKET_SIGN_PREFIX +RedisConstant.PREFIX_COPY+ RedisConstant.PREFIX_PRODUCT + RedisConstant.HOT + ":" + RedisConstant.ID_LIST;
+    }
+
+    /**
+     * idListCopyKey
+     * copy:+ product: + hot +idList
+     */
+    public static String idListCopyKey() {
+        return RedisConstant.PREFIX_COPY + RedisConstant.PREFIX_PRODUCT + RedisConstant.HOT + ":" + RedisConstant.ID_LIST;
+    }
+
+    /**
+     * copyDocumentIdKey
+     * copy: + id: + productDocument
+     * @param productDocumentId 文档id
+     * @return
+     */
+    public static String copyDocumentIdKey(Long productDocumentId) {
+        return RedisConstant.PREFIX_COPY + RedisConstant.ID + productDocumentId ;
+    }
+
+    /**
+     * documentIdKey
+     * id: + productDocument
+     * @param productDocumentId 文档id
+     */
+    public static String documentIdKey(Long productDocumentId) {
+        return RedisConstant.ID + productDocumentId ;
+    }
+
+    /**
+     * updateBucketKey
+     * bucket: + key
+     */
+    public static String updateBucketKey(String key) {
+        return RedisConstant.BUCKET_PREFIX + key;
     }
 }

@@ -5,11 +5,13 @@ import com.itxindeshang.common.result.CursorCommonResult;
 import com.itxindeshang.common.result.Result;
 import com.itxindeshang.pojo.dto.ProductDTO;
 import com.itxindeshang.pojo.dto.ProductUpdateDTO;
+import com.itxindeshang.pojo.vo.SimpleProductVO;
 import com.itxindeshang.service.ProductService;
 import jakarta.annotation.Resource;
-import jakarta.validation.Valid;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/product")
@@ -72,6 +74,13 @@ public class ProductController {
     @PutMapping("/update")
     public Result<?> updateProduct(@RequestBody  @Validated ProductUpdateDTO productUpdateDTO) {
         return productService.updateProduct(productUpdateDTO);
+    }
 
+    /**
+     * 获取热门商品
+     */
+    @GetMapping("/hot")
+    public Result<List<SimpleProductVO>> getHotProduct(@RequestParam(name = "limit", defaultValue = "10") Integer limit){
+        return productService.getHotProduct(limit);
     }
 }

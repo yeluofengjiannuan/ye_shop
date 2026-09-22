@@ -10,3 +10,7 @@ redis:
       cart-ttl: 86400 #购物车缓存
     count:
       hot-product-cache-size: 20 #热门商品缓存数量
+  bucket:
+    ttl:
+      hot-product-read-bucket-ttl: 10 #热门商品 读标记位
+      hot-product-write-bucket-ttl: 30 #热门商品 写标记位
