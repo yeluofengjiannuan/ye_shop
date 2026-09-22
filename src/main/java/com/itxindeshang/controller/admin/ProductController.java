@@ -5,6 +5,7 @@ import com.itxindeshang.common.result.CursorCommonResult;
 import com.itxindeshang.common.result.Result;
 import com.itxindeshang.pojo.dto.ProductDTO;
 import com.itxindeshang.pojo.dto.ProductUpdateDTO;
+import com.itxindeshang.pojo.entity.ProductSearchKeyword;
 import com.itxindeshang.pojo.vo.SimpleProductVO;
 import com.itxindeshang.service.ProductSearchKeywordService;
 import com.itxindeshang.service.ProductService;
@@ -107,5 +108,11 @@ public class ProductController {
         return productSearchKeywordService.getProductSearchKeywordListUser();
     }
 
-    
+    /**
+     * 管理员获取搜索关键词列表
+     */
+    @GetMapping("/admin/keyword/list")
+    public Result<List<ProductSearchKeyword>> getProductSearchKeywordListAdmin() {
+        return productSearchKeywordService.getProductSearchKeywordListAdmin();
+    }
 }

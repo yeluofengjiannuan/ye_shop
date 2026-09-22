@@ -11,4 +11,5 @@ import java.util.List;
 public interface ProductSearchKeywordService extends IService<ProductSearchKeyword>{
    Result<List<String>> getProductSearchKeywordListUser();
 
+    Result<List<ProductSearchKeyword>> getProductSearchKeywordListAdmin();
 }

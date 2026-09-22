@@ -31,4 +31,13 @@ public class ProductSearchKeywordServiceImpl extends ServiceImpl<ProductSearchKe
         List<String> resultList = hotProductSearchKeyword.stream().limit(5).toList();
         return Result.success(resultList);
     }
+
+    /**
+     * 管理员获取搜索关键词列表
+     */
+    @Override
+    public Result<List<ProductSearchKeyword>> getProductSearchKeywordListAdmin() {
+        List<ProductSearchKeyword> resultList = lambdaQuery().list();
+        return Result.success(resultList);
+    }
 }
