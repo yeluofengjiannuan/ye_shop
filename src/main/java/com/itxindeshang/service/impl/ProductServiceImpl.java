@@ -537,6 +537,30 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         return Result.success(productSpecVO);
     }
 
+    /**
+     * 查询相关商品
+     * @param productName 商品名称
+     * @param limit 查询数量
+     * @return
+     */
+    @Override
+    public Result<List<SimpleProductVO>> getProductRelated(String productName, Integer limit) {
+        List<ProductDocument> allMatchProductDocument = productDocumentService.getProductDocumentByProductNameKeyword(productName,limit +1);
+        if (CollectionUtils.isEmpty(allMatchProductDocument)) {
+            //后续考虑要怎么返回好点
+            return Result.success();
+        }
+        //遍历去除同名商品
+        for (ProductDocument productDocument : allMatchProductDocument) {
+            if(productDocument.getName().equals(productName)){
+                allMatchProductDocument.remove(productDocument);
+                break;
+            }
+        }
+        List<SimpleProductVO> result = allMatchProductDocument.stream().map(copyMapper::ProductDocumentToSimpleProductVO).toList();
+        return Result.success(result);
+    }
+
 
     /**
      * 游标结果封装

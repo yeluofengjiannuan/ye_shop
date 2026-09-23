@@ -33,4 +33,6 @@ public interface ProductService extends IService<Product> {
     Result<List<SimpleProductVO>> getHotProduct(Integer limit);
 
     Result<?> getProductSpecPrice(Long productId, Long specId);
+
+    Result<List<SimpleProductVO>> getProductRelated(String productName, Integer limit);
 }

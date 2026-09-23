@@ -160,6 +160,42 @@ public class ProductEsRepositoryImpl implements ProductEsRepository {
 
     }
 
+    /**
+     * 根据商品文档名进行查询
+     * @param name 商品文档名
+     * @param limit 查询数量
+     * @return 查询商品文档列表
+     */
+    @Override
+    public List<ProductDocument> searchByName(String name, int limit) {
+        if (StringUtils.isBlank(name)) {
+            return List.of();
+        }
+        try {
+            //匹配name以及过滤掉禁用状态的
+            SearchResponse<ProductDocument> searchResponse = esClient.search(s -> s
+                            .index(EsIndexEnum.PRODUCT.getIndexName())
+                            .size(limit)
+                            .query(q -> q.bool(b -> b
+                                            .must(m -> m
+                                                    .match(ma -> ma.field(ProductDocument.Fields.name)
+                                                            .query(name)))
+                                            .filter(f -> f.term(
+                                                    t -> t.field(ProductDocument.Fields.status)
+                                                            .value(CommonStatus.ACTIVE.getValue())
+                                            ))
+                                    )
+                            ),
+                    ProductDocument.class
+            );
+            return searchResponse.hits().hits().stream()
+                    .map(Hit::source)
+                    .collect(Collectors.toList());
+        } catch (IOException e) {
+            throw new RuntimeException("ES 按名称搜索商品失败", e);
+        }
+    }
+
 
     // 工具方法
     private long parseToMillis(String dateStr) {

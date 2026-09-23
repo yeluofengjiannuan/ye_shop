@@ -3,6 +3,7 @@ package com.itxindeshang.controller.admin;
 import com.itxindeshang.common.result.CursorCommonEntity;
 import com.itxindeshang.common.result.CursorCommonResult;
 import com.itxindeshang.common.result.Result;
+import com.itxindeshang.infrastructure.es.document.ProductDocument;
 import com.itxindeshang.pojo.dto.ProductDTO;
 import com.itxindeshang.pojo.dto.ProductUpdateDTO;
 import com.itxindeshang.pojo.entity.ProductSearchKeyword;
@@ -124,5 +125,17 @@ public class ProductController {
     @PutMapping("/admin/keyword/update")
     public Result<?> updateProductSearchListAdmin(@RequestBody List<ProductSearchKeyword> productSearchKeywordList){
         return productSearchKeywordService.updateProductSearchListAdmin(productSearchKeywordList);
+    }
+
+    /**
+     * 获取相关商品
+     * @param productName 商品名
+     * @param limit 查询数量
+     * @return
+     */
+    @GetMapping("/related")
+    public Result<List<SimpleProductVO>> getProductRelated(@RequestParam("productName") String productName,
+                                                           @RequestParam(value = "limit" , defaultValue = "10") Integer limit ){
+        return productService.getProductRelated(productName,limit);
     }
 }

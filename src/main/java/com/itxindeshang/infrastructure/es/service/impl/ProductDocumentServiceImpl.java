@@ -11,9 +11,11 @@ import com.itxindeshang.pojo.enums.CommonStatus;
 import com.itxindeshang.pojo.enums.ProductSortTypeEnum;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -94,4 +96,18 @@ public class ProductDocumentServiceImpl implements ProductDocumentService {
     public List<ProductDocument> searchLimitHotProductDocument(Integer limit) {
         //TODO: 第一版先用销售额，后续我的思路是saleCount和viewCount(7天内吧)
         return productEsRepository.searchLimitOrderByField(limit,ProductDocument.Fields.salesCount, CommonSortTypeEnum.DESC);    }
+
+    /**
+     * 根据商品名关键词查询
+     * @param productNameKeyword 商品名关键词
+     * @param limit 查询数量
+     * @return
+     */
+    @Override
+    public List<ProductDocument> getProductDocumentByProductNameKeyword(String productNameKeyword, int limit) {
+        if (StringUtils.isBlank(productNameKeyword)) {
+            return Collections.emptyList();
+        }
+        return productEsRepository.searchByName(productNameKeyword,limit);
+    }
 }
