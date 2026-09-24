@@ -3,6 +3,7 @@ package com.itxindeshang.pojo.entity;
 import com.baomidou.mybatisplus.annotation.*;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.itxindeshang.common.constant.DatePatternConstants;
+import lombok.Builder;
 import lombok.Data;
 import org.springframework.format.annotation.DateTimeFormat;
 
@@ -16,6 +17,7 @@ import java.time.LocalDateTime;
  */
 @Data
 @TableName(value = "collection")
+@Builder
 public class ProductCollection implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;

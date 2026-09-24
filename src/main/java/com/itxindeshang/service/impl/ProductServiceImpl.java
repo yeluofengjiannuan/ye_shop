@@ -317,33 +317,45 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         }
 // ================= 第三步：处理收藏状态 =================
 // 【修复】：同样加上 null 保护，防止空指针异常 TODO：这里有那个缓存穿透问题
+        // ================= 第三步：处理收藏状态 =================
         if (resultProduct != null) {
             resultProduct.setIsCollection(CommonStatus.INACTIVE.getNumber());
             if (userIdLong != null) {
-                // ... 收藏逻辑保持不变 ...
                 String collectionKey = RedisKeyGenerator.productCollection(productId);
-                Set<Object> userIdSet = (Set<Object>) RedisConnector.opsForValue().get(collectionKey);
 
-                // 如果 Redis 里没有收藏列表，查库并回填
+                // 1. 先查 Redis
+                Set<Object> userIdSet = RedisConnector.opsForSet().members(collectionKey);
+
+                // 2. 如果 Redis 里没有，查库回填
                 if (CollectionUtils.isEmpty(userIdSet)) {
                     List<ProductCollection> productCollectionList = collectionService.lambdaQuery()
-                            .eq(ProductCollection::getProductId, productId).list();
-                    userIdSet = productCollectionList.stream()
-                            .map(ProductCollection::getUserId).collect(Collectors.toSet());
+                            .eq(ProductCollection::getProductId, productId)
+                            .list();
 
-                    if (!userIdSet.isEmpty()) {
-                        RedisConnector.opsForValue().set(collectionKey, userIdSet);
-                        RedisConnector.expire(collectionKey, redisCacheTtlProperties.getProductCollectionTtl(), TimeUnit.SECONDS);
+                    if (!CollectionUtils.isEmpty(productCollectionList)) {
+                        // 【关键】：统一转成 String 存储，避免类型问题
+                        String[] userIdArray = productCollectionList.stream()
+                                .map(pc -> String.valueOf(pc.getUserId()))
+                                .toArray(String[]::new);
+                        RedisConnector.opsForSet().add(collectionKey, userIdArray);
+                    } else {
+                        // 没人收藏：用字符串标记
+                        RedisConnector.opsForSet().add(collectionKey, "EMPTY");
                     }
+                    RedisConnector.expire(collectionKey, redisCacheTtlProperties.getProductCollectionTtl(), TimeUnit.SECONDS);
+
+                    // 重新从 Redis 取
+                    userIdSet = RedisConnector.opsForSet().members(collectionKey);
                 }
-                // 判断当前用户是否在收藏集合中
-                if (userIdSet != null && userIdSet.contains(userIdLong)) {
+
+                // 3. 判断当前用户是否在收藏集合中（统一用 String 比较）
+                String currentUserIdStr = String.valueOf(userIdLong);
+                if (userIdSet != null && userIdSet.contains(currentUserIdStr)) {
                     resultProduct.setIsCollection(CommonStatus.ACTIVE.getNumber());
                 }
             }
             return Result.success(resultProduct);
         } else {
-            // 数据确实不存在，在这里统一返回错误
             return Result.error(MessageConstant.DATA_ERROR);
         }
     }

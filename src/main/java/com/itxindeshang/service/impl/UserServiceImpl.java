@@ -11,7 +11,6 @@ import com.itxindeshang.pojo.entity.SysUser;
 import com.itxindeshang.pojo.vo.UserDetailVO;
 import com.itxindeshang.service.UserService;
 import jakarta.annotation.Resource;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -22,7 +21,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, SysUser> implements
 
     /**
      * 查询用户信息详情
-     * @return
      */
     @Override
     public Result<UserDetailVO> getUserDetail() {
@@ -35,7 +33,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, SysUser> implements
      * 修改用户详情
      */
     @Override
-    public Result updateUserDetail(UserDetailDTO userDetailDTO) {
+    public Result<?> updateUserDetail(UserDetailDTO userDetailDTO) {
         String userId = BaseContext.getUserId();
         //更新数据库
         boolean isSuccess = lambdaUpdate().eq(SysUser::getId, userId).set(SysUser::getNickname, userDetailDTO.getNickname())
@@ -45,4 +43,5 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, SysUser> implements
         }
         return Result.success();
     }
+
 }
