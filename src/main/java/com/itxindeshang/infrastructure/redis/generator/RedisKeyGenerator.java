@@ -309,4 +309,13 @@ public class RedisKeyGenerator {
     public static String updateBucketKey(String key) {
         return RedisConstant.BUCKET_PREFIX + key;
     }
+
+    /**
+     * es最大商品id缓存
+     * product: + maxProductId
+     * @return
+     */
+    public static String maxProductId() {
+        return RedisConstant.PREFIX_PRODUCT + RedisConstant.MAX_PRODUCT_ID;
+    }
 }

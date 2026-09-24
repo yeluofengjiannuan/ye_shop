@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.itxindeshang.common.result.CursorCommonEntity;
 import com.itxindeshang.common.result.CursorCommonResult;
 import com.itxindeshang.common.result.Result;
+import com.itxindeshang.common.result.SimpleCursorCommonResult;
 import com.itxindeshang.pojo.dto.ProductDTO;
 import com.itxindeshang.pojo.dto.ProductUpdateDTO;
 import com.itxindeshang.pojo.entity.Product;
@@ -35,4 +36,17 @@ public interface ProductService extends IService<Product> {
     Result<?> getProductSpecPrice(Long productId, Long specId);
 
     Result<List<SimpleProductVO>> getProductRelated(String productName, Integer limit);
+
+    Result<SimpleCursorCommonResult> getSimpleProductByScrollQuery(Long beginId, Integer querySize);
+
+    /**
+     * 获取es最大商品id
+     * @return 最大商品id
+     */
+    Long getMaxProductId();
+
+    /**
+     * 初始化最大商品id es -> redis
+     */
+    void initMaxProductId();
 }

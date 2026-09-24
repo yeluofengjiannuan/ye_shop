@@ -9,9 +9,7 @@ import com.itxindeshang.common.constant.DataConstant;
 import com.itxindeshang.common.constant.MessageConstant;
 import com.itxindeshang.common.exception.ProductException;
 import com.itxindeshang.common.mapstruct.CopyMapper;
-import com.itxindeshang.common.result.CursorCommonEntity;
-import com.itxindeshang.common.result.CursorCommonResult;
-import com.itxindeshang.common.result.Result;
+import com.itxindeshang.common.result.*;
 import com.itxindeshang.context.BaseContext;
 import com.itxindeshang.infrastructure.es.document.ProductDocument;
 import com.itxindeshang.infrastructure.es.service.ProductDocumentService;
@@ -41,11 +39,13 @@ import org.apache.commons.lang3.StringUtils;
 import org.redisson.api.RBucket;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -101,6 +101,9 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
 
     @Resource
     private BloomFilterUtils bloomFilterUtils;
+
+    @Resource(name = "executorSchedulerCommon")
+    private ThreadPoolTaskExecutor threadPoolExecutor;
 
     /**
      *  新增商品
@@ -561,6 +564,80 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         return Result.success(result);
     }
 
+    /**
+     * 滚动查询商品列表
+     * @param beginId 开始查询id
+     * @param querySize 查询数量
+     */
+    @Override
+    public Result<SimpleCursorCommonResult> getSimpleProductByScrollQuery(Long beginId, Integer querySize) {
+        //判断beginId是否为null，是的话给定一个随机开始查询id
+        if (Objects.isNull(beginId)) {
+            Long maxProductId = getMaxProductId();
+
+            //round:将传入值+0.5并向下取整
+            long maxBeginId = Math.round(maxProductId * DataConstant.QUERY_SECURITY_NUMBER);
+            //max:将传入的两个值比较并返回大的值
+            maxBeginId = Math.max(maxBeginId, 2);
+            beginId = ThreadLocalRandom.current().nextLong(1, maxBeginId);
+        }
+        //es查询
+        List<SimpleProductVO> resultList = productDocumentService.searchLimitAfterProductId(querySize, beginId).stream()
+                .map(copyMapper::ProductDocumentToSimpleProductVO)
+                .collect(Collectors.toList());
+
+        //如果没有结果返回空集合
+        if (resultList.isEmpty()) {
+            return Result.success(SimpleCursorCommonResult.builder()
+                    .list(Collections.emptyList())
+                    .isEnd(true)
+                    .build());
+        }
+        //查询末尾id
+        Long endId = resultList.get(resultList.size() - 1).getId();
+        boolean isEnd = resultList.size() < querySize;
+        //打乱结果
+        Collections.shuffle(resultList);
+        SimpleCursorCommonEntity simpleCursorCommonEntity = SimpleCursorCommonEntity.builder()
+                .sortId(endId)
+                .querySize(querySize)
+                .build();
+
+        return Result.success(SimpleCursorCommonResult.builder()
+                .simpleCursorCommonEntity(simpleCursorCommonEntity)
+                .list(resultList)
+                .isEnd(isEnd)
+                .build());
+    }
+
+    /**
+     * 获取es最大商品id
+     */
+    public Long getMaxProductId() {
+        String maxProductIdKey = RedisKeyGenerator.maxProductId();
+        Object maxProductIdObject = RedisConnector.opsForValue().get(maxProductIdKey);
+
+        //如果查询结果为null
+        if (Objects.isNull(maxProductIdObject)) {
+            //开启线程任务查询es
+            threadPoolExecutor.execute(this::initMaxProductId);
+            //直接查询es返回数据
+            return productDocumentService.getMaxProductDocumentId();
+        }
+
+        return Long.valueOf(maxProductIdObject.toString());
+    }
+
+    /**
+     * 初始化最大商品id es -> redis
+     */
+    @Override
+    public void initMaxProductId() {
+        //查询es
+        Long maxProductDocumentId = productDocumentService.getMaxProductDocumentId();
+        String maxProductIdKey = RedisKeyGenerator.maxProductId();
+        RedisConnector.opsForValue().set(maxProductIdKey,maxProductDocumentId);
+    }
 
     /**
      * 游标结果封装

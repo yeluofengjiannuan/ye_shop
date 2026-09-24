@@ -37,6 +37,7 @@ public class RedisConstant {
     public static final String ORDERNO = "orderNo:";
     public static final String HOT = "hot";
     public static final String ID = "id:";
+    public static final String MAX_PRODUCT_ID = "maxProductId";
 
 
     /**

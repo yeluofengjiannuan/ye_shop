@@ -110,4 +110,24 @@ public class ProductDocumentServiceImpl implements ProductDocumentService {
         }
         return productEsRepository.searchByName(productNameKeyword,limit);
     }
+
+    /**
+     * 获取最大商品文档 id
+     * @return 最大商品文档 id
+     */
+    @Override
+    public Long getMaxProductDocumentId() {
+        return productEsRepository.getMaxId();
+    }
+
+    /**
+     * 查询指定商品id之后的指定数量的商品文档
+     * @param limit 查询数量
+     * @param productId 商品 id
+     * @return  商品文档列表
+     */
+    @Override
+    public List<ProductDocument> searchLimitAfterProductId(Integer limit, Long productId) {
+        return productEsRepository.searchLimitAfterId(limit,productId);
+    }
 }

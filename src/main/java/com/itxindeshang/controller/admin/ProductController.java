@@ -3,6 +3,7 @@ package com.itxindeshang.controller.admin;
 import com.itxindeshang.common.result.CursorCommonEntity;
 import com.itxindeshang.common.result.CursorCommonResult;
 import com.itxindeshang.common.result.Result;
+import com.itxindeshang.common.result.SimpleCursorCommonResult;
 import com.itxindeshang.infrastructure.es.document.ProductDocument;
 import com.itxindeshang.pojo.dto.ProductDTO;
 import com.itxindeshang.pojo.dto.ProductUpdateDTO;
@@ -137,5 +138,14 @@ public class ProductController {
     public Result<List<SimpleProductVO>> getProductRelated(@RequestParam("productName") String productName,
                                                            @RequestParam(value = "limit" , defaultValue = "10") Integer limit ){
         return productService.getProductRelated(productName,limit);
+    }
+
+    /**
+     * 滚动查询商品列表
+     * @return
+     */
+    @GetMapping("/scroll/query/list")
+    public Result<SimpleCursorCommonResult> getSimpleProductByScrollQuery(Long beginId, @RequestParam(defaultValue = "80") Integer querySize){
+        return  productService.getSimpleProductByScrollQuery(beginId,querySize);
     }
 }
