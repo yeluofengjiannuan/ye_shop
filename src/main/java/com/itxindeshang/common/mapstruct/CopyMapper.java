@@ -88,4 +88,6 @@ public interface CopyMapper {
     SimpleProductVO ProductDocumentToSimpleProductVO(ProductDocument productDocument);
 
     ProductSpecVO productSpecToProductSpecVO(ProductSpec resultProductSpec);
+
+    UserDetailVO sysUserToUserDetailVO(SysUser user);
 }
