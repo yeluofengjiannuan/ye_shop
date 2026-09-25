@@ -259,6 +259,40 @@ public class ProductEsRepositoryImpl implements ProductEsRepository {
 
     }
 
+    /**
+     * 根据id集合查询商品
+     * @param productIdList 商品id集合
+     * @return 商品文档列表
+     */
+    @Override
+    public List<ProductDocument> searchByIdList(List<Long> productIdList) {
+        if (productIdList == null || productIdList.isEmpty()) {
+            return Collections.emptyList();
+        }
+        try {
+            // 把 Long 列表转为 FieldValue 列表
+            List<FieldValue> fieldValues = productIdList.stream()
+                    .map(FieldValue::of)
+                    .collect(Collectors.toList());
+
+            SearchRequest searchRequest = new SearchRequest.Builder()
+                    .index(EsIndexEnum.PRODUCT.getIndexName())
+                    .query(q -> q.terms(t -> t
+                            .field(ProductDocument.Fields.id)
+                            .terms(v -> v.value(fieldValues))
+                    ))
+                    .size(productIdList.size())
+                    .build();
+
+            SearchResponse<ProductDocument> searchResponse = esClient.search(searchRequest, ProductDocument.class);
+            return searchResponse.hits().hits().stream()
+                    .map(Hit::source)
+                    .collect(Collectors.toList());
+        } catch (IOException e) {
+            throw new RuntimeException("ES 根据id集合查询商品失败", e);
+        }
+    }
+
 
     // 工具方法
     private long parseToMillis(String dateStr) {

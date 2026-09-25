@@ -60,4 +60,10 @@ public interface ProductEsRepository {
      */
     List<ProductDocument> searchLimitAfterId(Integer limit, Long productId);
 
+    /**
+     * 根据id集合查询商品
+     * @param productIdList 商品id集合
+     * @return 商品文档列表
+     */
+    List<ProductDocument> searchByIdList(List<Long> productIdList);
 }

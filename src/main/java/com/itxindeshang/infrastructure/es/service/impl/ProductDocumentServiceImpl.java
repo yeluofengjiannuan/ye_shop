@@ -130,4 +130,14 @@ public class ProductDocumentServiceImpl implements ProductDocumentService {
     public List<ProductDocument> searchLimitAfterProductId(Integer limit, Long productId) {
         return productEsRepository.searchLimitAfterId(limit,productId);
     }
+
+    /**
+     * 根据id集合查询商品
+     * @param productIdList 商品id集合
+     * @return 商品文档列表
+     */
+    @Override
+    public List<ProductDocument> searchByIdList(List<Long> productIdList) {
+        return productEsRepository.searchByIdList(productIdList);
+    }
 }

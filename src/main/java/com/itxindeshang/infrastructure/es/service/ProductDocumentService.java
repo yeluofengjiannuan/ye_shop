@@ -4,7 +4,6 @@ import com.itxindeshang.infrastructure.es.document.ProductDocument;
 import com.itxindeshang.pojo.enums.CommonStatus;
 import com.itxindeshang.pojo.enums.ProductSortTypeEnum;
 
-import java.util.Arrays;
 import java.util.List;
 
 public interface ProductDocumentService {
@@ -52,4 +51,12 @@ public interface ProductDocumentService {
      * @return  商品文档列表
      */
     List<ProductDocument> searchLimitAfterProductId(Integer limit, Long productId);
+
+    /**
+     * 根据id集合查询商品
+     * @param productIdList 商品id集合
+     * @return 商品文档列表
+     */
+    List<ProductDocument> searchByIdList(List<Long> productIdList);
+
 }
