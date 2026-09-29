@@ -4,6 +4,7 @@ import com.itxindeshang.common.result.Result;
 import com.itxindeshang.pojo.dto.OrderDTO;
 import com.itxindeshang.pojo.vo.OrderWithItemVO;
 import com.itxindeshang.service.OrderService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -14,6 +15,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/order")
+@Tag(name = "订单管理")
 public class OrderController {
 
     @Resource

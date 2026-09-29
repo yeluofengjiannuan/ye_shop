@@ -6,6 +6,7 @@ import com.itxindeshang.pojo.entity.Coupon;
 import com.itxindeshang.pojo.entity.CouponUser;
 import com.itxindeshang.pojo.vo.CouponUserVO;
 import com.itxindeshang.service.CouponService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -16,6 +17,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api")
+@Tag(name = "优惠券管理")
 public class CouponController {
     @Resource
     private CouponService couponService;

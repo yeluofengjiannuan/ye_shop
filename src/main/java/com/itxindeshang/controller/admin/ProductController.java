@@ -11,14 +11,17 @@ import com.itxindeshang.pojo.entity.ProductSearchKeyword;
 import com.itxindeshang.pojo.vo.SimpleProductVO;
 import com.itxindeshang.service.ProductSearchKeywordService;
 import com.itxindeshang.service.ProductService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springdoc.core.annotations.ParameterObject;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/product")
+@Tag(name = "商品管理")
 public class ProductController {
     @Resource
     private ProductService productService;
@@ -38,7 +41,7 @@ public class ProductController {
      * 查询分类下所有商品
      */
     @GetMapping("/category/list")
-    public Result<CursorCommonResult> getCategoryProductList(@Validated CursorCommonEntity cursorCommonEntity
+    public Result<CursorCommonResult> getCategoryProductList(@Validated @ParameterObject CursorCommonEntity cursorCommonEntity
             , Long categoryId) {
         return productService.getCategoryProductList(cursorCommonEntity, categoryId);
     }
@@ -47,7 +50,7 @@ public class ProductController {
      * 关键词查询商品
      */
     @GetMapping("/search")
-    public Result<CursorCommonResult> searchProductList(@Validated CursorCommonEntity cursorCommonEntity, String keyword) {
+    public Result<CursorCommonResult> searchProductList(@Validated @ParameterObject CursorCommonEntity cursorCommonEntity, String keyword) {
         return productService.searchProductList(cursorCommonEntity, keyword);
     }
 

@@ -6,7 +6,9 @@ import com.itxindeshang.pojo.dto.UpdateCartQuantityDTO;
 import com.itxindeshang.pojo.entity.Cart;
 import com.itxindeshang.service.CartService;
 import io.grpc.internal.ClientStream;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,6 +19,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/cart")
+@Tag(name = "购物车管理")
 public class CartController {
     @Resource
     private CartService cartService;
@@ -49,7 +52,7 @@ public class CartController {
      * 修改购物车商品数量
      */
     @PutMapping("/updateQuantity")
-    public Result updateQuantity(UpdateCartQuantityDTO updateCartQuantityDTO) {
+    public Result updateQuantity(@ParameterObject UpdateCartQuantityDTO updateCartQuantityDTO) {
         return cartService.updateCartQuantity(updateCartQuantityDTO);
     }
 

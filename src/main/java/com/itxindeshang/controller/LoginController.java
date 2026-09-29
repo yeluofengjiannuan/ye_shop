@@ -3,13 +3,15 @@ package com.itxindeshang.controller;
 import com.itxindeshang.common.result.Result;
 import com.itxindeshang.pojo.dto.UserDTO;
 import com.itxindeshang.service.LoginService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/login")
+@RequestMapping("/api")
+@Tag(name ="登录注册管理")
 public class LoginController {
     @Resource
     private LoginService loginService;
@@ -20,7 +22,7 @@ public class LoginController {
      * @param userDTO
      * @return
      */
-    @PostMapping("/account")
+    @PostMapping("/user/login/account")
     public Result loginByAccount(@RequestBody @NotNull UserDTO userDTO) {
         return loginService.loginByAccount(userDTO);
     }
@@ -31,7 +33,7 @@ public class LoginController {
      * @param refreshToken
      * @return
      */
-    @PostMapping("/refresh/token")
+    @PostMapping("/user/refresh/token")
     public Result refreshToken(@RequestParam @NotBlank String refreshToken) {
         return loginService.refreshToken(refreshToken);
     }
@@ -39,7 +41,7 @@ public class LoginController {
      * 注册
      * 测试成功
      */
-    @PostMapping("/register")
+    @PostMapping("/user/create/account")
     public Result register(@RequestParam @NotBlank String username,
                            @RequestParam @NotBlank String password,
                            @RequestParam @NotBlank String phone) {

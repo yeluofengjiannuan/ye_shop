@@ -514,7 +514,7 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
     // =============================================
     // 定时恢复对账
     // =============================================
-    @Scheduled(fixedDelay = 30000)
+    @Scheduled(fixedDelay = 300000)
     public void checkRedisAndRecover() {
         try {
             //探测是否存活

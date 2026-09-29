@@ -122,7 +122,20 @@ public class ShiroConfig {
         // 公开接口（无需认证）
 
          //TODO：这里是我的项目后续自己安排的
-        filterChainDefinitionMap.put("/api/login/**", "anon");
+        filterChainDefinitionMap.put("/api/user/login/**", "anon");
+        filterChainDefinitionMap.put("/api/user/refresh/**", "anon");
+        filterChainDefinitionMap.put("/api/user/create/account", "anon");
+        // 文档首页，精确匹配 doc.html
+        filterChainDefinitionMap.put("/doc.html", "anon");
+        filterChainDefinitionMap.put("/doc.html/**", "anon");
+        filterChainDefinitionMap.put("/swagger-ui/index.html", "anon");
+        filterChainDefinitionMap.put("/swagger-ui/**", "anon");
+        filterChainDefinitionMap.put("/swagger-ui.html/**", "anon");
+        // API 文档数据接口
+        filterChainDefinitionMap.put("/v3/api-docs/**", "anon");
+
+// 静态资源（JS/CSS/字体等）
+        filterChainDefinitionMap.put("/webjars/**", "anon");
         //TODO：测试完记得弄回来
         filterChainDefinitionMap.put("/**", "jwt");
         return filterChainDefinitionMap;

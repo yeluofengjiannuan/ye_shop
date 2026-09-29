@@ -8,9 +8,11 @@ import com.itxindeshang.pojo.vo.UserDetailVO;
 import com.itxindeshang.service.CollectionService;
 import com.itxindeshang.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,6 +20,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/user")
+@Tag(name = "用户管理")
 public class UserController {
     @Resource
     private UserService userService;
@@ -66,7 +69,7 @@ public class UserController {
      * @return 简单商品封装列表
      */
     @GetMapping("/collect/list")
-    public Result<SimpleCursorCommonResult>getCollectionList(@Valid SimpleCursorCommonEntity simpleCursorCommonEntity) {
+    public Result<SimpleCursorCommonResult>getCollectionList(@Valid @ParameterObject SimpleCursorCommonEntity simpleCursorCommonEntity) {
         return collectionService.getCollectionList(simpleCursorCommonEntity);
     }
 }

@@ -4,6 +4,7 @@ import com.itxindeshang.common.result.Result;
 import com.itxindeshang.pojo.dto.AddressDTO;
 import com.itxindeshang.pojo.entity.Address;
 import com.itxindeshang.service.AddressService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.springframework.validation.annotation.Validated;
@@ -13,6 +14,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/address")
+@Tag(name = "地址管理")
 public class AddressController {
     @Resource
     private AddressService addressService;
