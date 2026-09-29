@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.itxindeshang.properties.JWTProperties;
 import com.itxindeshang.security.filter.JWTFilter;
+import com.itxindeshang.security.filter.OptionalJWTFilter;
 import com.itxindeshang.security.realm.CustomRealm;
 import jakarta.servlet.Filter;
 import org.apache.shiro.mgt.DefaultSessionStorageEvaluator;
@@ -78,6 +79,14 @@ public class ShiroConfig {
         return jwtFilter;
     }
 
+    // 5.1 自定义可选JwtFilter
+    @Bean
+    public OptionalJWTFilter optionalJwtFilter(JWTProperties jwtProperties, @Lazy HandlerExceptionResolver handlerExceptionResolver) {
+        OptionalJWTFilter optionalJwtFilter = new OptionalJWTFilter();
+        configureJwtFilter(optionalJwtFilter, jwtProperties, handlerExceptionResolver);
+        return optionalJwtFilter;
+    }
+
     private void configureJwtFilter(JWTFilter filter, JWTProperties jwtProperties, HandlerExceptionResolver handlerExceptionResolver) {
         filter.setJwtProperties(jwtProperties);
         filter.setHandlerExceptionResolver(handlerExceptionResolver);
@@ -96,18 +105,25 @@ public class ShiroConfig {
         registration.setEnabled(false);
         return registration;
     }
+
+    @Bean
+    public FilterRegistrationBean<OptionalJWTFilter> optionalRegistration(@Qualifier("optionalJwtFilter") OptionalJWTFilter filter) {
+        FilterRegistrationBean<OptionalJWTFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
+    }
     // 6. 核心：Shiro过滤器工厂（无任何javax依赖）
     @Bean
     public ShiroFilterFactoryBean shiroFilterFactoryBean(SecurityManager securityManager,
-                                                         @Qualifier("jwtFilter") JWTFilter jwtFilter
-                                                         /*,@Qualifier("optionalJwtFilter") OptionalJwtFilter optionalJwtFilter */){
+                                                         @Qualifier("jwtFilter") JWTFilter jwtFilter,
+                                                         @Qualifier("optionalJwtFilter") OptionalJWTFilter optionalJwtFilter){
         ShiroFilterFactoryBean factoryBean = new ShiroFilterFactoryBean();
         factoryBean.setSecurityManager(securityManager);
 
         // 注册JwtFilter（Jakarta的Filter，Shiro 1.12完全兼容）
         Map<String, Filter> filters = new LinkedHashMap<>();
         filters.put("jwt", jwtFilter);
-        /*filters.put("optionalJwt", optionalJwtFilter);*/
+        filters.put("optionalJwt", optionalJwtFilter);
         factoryBean.setFilters(filters);
 
         // 拦截规则（顺序：自上而下，公开接口在前）
@@ -125,6 +141,7 @@ public class ShiroConfig {
         filterChainDefinitionMap.put("/api/user/login/**", "anon");
         filterChainDefinitionMap.put("/api/user/refresh/**", "anon");
         filterChainDefinitionMap.put("/api/user/create/account", "anon");
+        filterChainDefinitionMap.put("/api/user/product/comment/**/show", "optionalJwt");
         // 文档首页，精确匹配 doc.html
         filterChainDefinitionMap.put("/doc.html", "anon");
         filterChainDefinitionMap.put("/doc.html/**", "anon");
