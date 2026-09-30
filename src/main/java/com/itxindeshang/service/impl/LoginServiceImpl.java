@@ -115,6 +115,14 @@ public class LoginServiceImpl extends ServiceImpl<UserMapper, SysUser> implement
         return Result.success();
     }
 
+    /**
+     * 获取登录用户信息
+     */
+    @Override
+    public Result<UserInfo> getUser() {
+        return Result.success(BaseContext.getUserInfo());
+    }
+
     private SysUser getSysUserByNameWithRolesAndPermissions(@NotBlank String username) {
         if (StringUtils.isBlank(username)) {
             return null;
