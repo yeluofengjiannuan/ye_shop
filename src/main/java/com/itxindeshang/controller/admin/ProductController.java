@@ -42,8 +42,9 @@ public class ProductController {
      */
     @GetMapping("/category/list")
     public Result<CursorCommonResult> getCategoryProductList(@Validated @ParameterObject CursorCommonEntity cursorCommonEntity
-            , Long categoryId) {
-        return productService.getCategoryProductList(cursorCommonEntity, categoryId);
+            , Long categoryId
+            , boolean isFirstCategoryId) {
+        return productService.getCategoryProductList(cursorCommonEntity, categoryId,isFirstCategoryId);
     }
 
     /**

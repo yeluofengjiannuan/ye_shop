@@ -173,7 +173,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
      * @return
      */
     @Override
-    public Result<CursorCommonResult> getCategoryProductList(CursorCommonEntity cursorCommonEntity, Long categoryId) {
+    public Result<CursorCommonResult> getCategoryProductList(CursorCommonEntity cursorCommonEntity, Long categoryId,boolean isFirstCategoryId) {
         //TODO: 确保查询categoryId是二级分类
         //在值相同时确保不重复
         Long sortId = cursorCommonEntity.getSortId();
@@ -181,14 +181,12 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         String sortValue = cursorCommonEntity.getSortValue();
         ProductSortTypeEnum productSortTypeEnum = ProductSortTypeEnum.getByValue(sortType);
         //上一次查询的最后值/定位
-        sortValue = ProductSortTypeEnum.filterFormatSortValue(productSortTypeEnum, sortValue);
         Integer querySize = cursorCommonEntity.getQuerySize();
-        String sortField = productSortTypeEnum.getSortField();
-        String dbValue = productSortTypeEnum.getDbValue();//TODO:未使用字段，后续可以考虑删除或者功能复用
-        boolean isAsc = productSortTypeEnum.getCommonSortTypeEnum().isAsc();
-//        List<ProductVO> queryList = productMapper.getCategoryProductList(categoryId, sortField, sortId, sortValue, isAsc, querySize);
-        return null;//FIXME：这里的游标记得处理
-//        return getCursorCommonResult(queryList,querySize, productSortTypeEnum, sortType);
+        //通过es查询
+        List<ProductDocument> productDocuments = productDocumentService.searchByCursorByCategoryId(
+                querySize, productSortTypeEnum, sortValue, sortId, categoryId, isFirstCategoryId);
+        List<SimpleProductVO> queryList =productDocuments.stream().map(copyMapper::ProductDocumentToSimpleProductVO).toList();
+        return getCursorCommonResult(queryList,querySize, productSortTypeEnum, sortType);//FIXME：这里的游标记得处理
     }
 
     /**

@@ -16,7 +16,7 @@ import java.util.List;
 public interface ProductService extends IService<Product> {
     Result<Long> addProduct(ProductDTO productDTO);
 
-    Result<CursorCommonResult> getCategoryProductList(@Valid CursorCommonEntity cursorCommonEntity, Long categoryId);
+    Result<CursorCommonResult> getCategoryProductList(@Valid CursorCommonEntity cursorCommonEntity, Long categoryId,boolean isFirstCategoryId);
 
     Result<CursorCommonResult> searchProductList(@Valid CursorCommonEntity cursorCommonEntity, String keyword);
 

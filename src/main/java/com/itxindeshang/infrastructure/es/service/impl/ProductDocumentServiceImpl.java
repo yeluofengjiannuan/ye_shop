@@ -6,19 +6,18 @@ import com.itxindeshang.infrastructure.es.document.ProductDocument;
 import com.itxindeshang.infrastructure.es.enums.EsIndexEnum;
 import com.itxindeshang.infrastructure.es.repository.ProductEsRepository;
 import com.itxindeshang.infrastructure.es.service.ProductDocumentService;
+import com.itxindeshang.infrastructure.redis.generator.RedisKeyGenerator;
 import com.itxindeshang.pojo.enums.CommonSortTypeEnum;
 import com.itxindeshang.pojo.enums.CommonStatus;
 import com.itxindeshang.pojo.enums.ProductSortTypeEnum;
+import com.itxindeshang.service.CategoryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 
 @Component
@@ -30,6 +29,8 @@ public class ProductDocumentServiceImpl implements ProductDocumentService {
     private final ElasticsearchClient esClient;
 
     private final ProductEsRepository productEsRepository;
+
+    private final CategoryService categoryService;
 
     /**
      * 保存/更新商品到ES（id存在则覆盖，不存在则新增）
@@ -139,5 +140,42 @@ public class ProductDocumentServiceImpl implements ProductDocumentService {
     @Override
     public List<ProductDocument> searchByIdList(List<Long> productIdList) {
         return productEsRepository.searchByIdList(productIdList);
+    }
+
+    /**
+     * 根据分类id进行查询
+     * @param limit 查询数
+     * @param productSortTypeEnum 商品排序枚举
+     * @param productId 商品 id
+     * @param categoryId 分类 id (一级或二级分类 id )
+     * @param isFirstCategoryId 是否为一级分类 id
+     * @return
+     */
+    @Override
+    @SuppressWarnings("unchecked")
+    public List<ProductDocument> searchByCursorByCategoryId(Integer limit, ProductSortTypeEnum productSortTypeEnum, String sortValue, Long productId, Long categoryId, boolean isFirstCategoryId) {
+        //判断是否为一级分类
+        if (Objects.isNull(isFirstCategoryId)) {
+            throw new RuntimeException("是否为一级分类id isFirstCategoryId, 传参为 null");
+        }
+
+        //如果是一级分类，从redis查询出二级分类
+        if (isFirstCategoryId) {
+            List<Long> secondCategoryIdList = categoryService.getsecondCategoryIdListByFirstCategoryId(categoryId);
+            //首次一级分类查询
+            if (Objects.isNull(sortValue) || Objects.isNull(productId)) {
+                return productEsRepository.searchLimitByProductSortTypeAndCategoryIdList(productSortTypeEnum, secondCategoryIdList, limit);
+            }
+            //一级分类游标查询
+            return productEsRepository.searchCursorByProductSortTypeAndCategoryIdList(productSortTypeEnum, secondCategoryIdList, limit, sortValue, productId);
+        }
+        //不是一级分类直接根据传的categoryId查
+        //首次二级分类查询
+        if (Objects.isNull(sortValue) || Objects.isNull(productId)) {
+            return productEsRepository.searchLimitByProductSortTypeAndCategoryId(productSortTypeEnum, categoryId, limit);
+        }
+        //二级分类游标查询
+        return productEsRepository.searchCursorByProductSortTypeAndCategoryId(productSortTypeEnum, categoryId, limit, sortValue, productId);
+
     }
 }
