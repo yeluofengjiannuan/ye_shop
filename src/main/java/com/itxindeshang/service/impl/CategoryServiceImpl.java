@@ -8,17 +8,16 @@ import com.itxindeshang.common.constant.DataConstant;
 import com.itxindeshang.common.constant.MessageConstant;
 import com.itxindeshang.common.mapstruct.CopyMapper;
 import com.itxindeshang.common.result.Result;
+import com.itxindeshang.infrastructure.redis.connect.RedisConnector;
+import com.itxindeshang.infrastructure.redis.generator.RedisKeyGenerator;
 import com.itxindeshang.mapper.CategoryMapper;
 import com.itxindeshang.pojo.dto.CategoryDTO;
 import com.itxindeshang.pojo.entity.Category;
 import com.itxindeshang.service.CategoryService;
 import jakarta.annotation.Resource;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -94,6 +93,9 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         // 4. 同时写入两个缓存（没有循环依赖，没有二次查库）
         categoryTreeCache.put(CaffeineConstant.CACHE_KEY_CATEGORY_TREE, rootCategories);
         categoryMapCache.put(CaffeineConstant.CACHE_KEY_CATEGORY_MAP, flatMap);
+
+        //5.写入redis缓存
+        updateCategoryTreeRedis();
     }
 
     /**
@@ -103,6 +105,10 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         //清除缓存
         categoryTreeCache.invalidate(CaffeineConstant.CACHE_KEY_CATEGORY_TREE);
         categoryMapCache.invalidate(CaffeineConstant.CACHE_KEY_CATEGORY_MAP);
+
+        //TODO:清除redis缓存
+        String categoryTreeKey = RedisKeyGenerator.categoryTreeKey();
+        RedisConnector.delete(categoryTreeKey);
     }
     /**
      * 获取子节点
@@ -140,10 +146,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
 
     /**
      * 更新分类
-     * TODO:更新parentID是最要命的，要想好逻辑,最后的重复可以看着修改更优雅
-     * @param categoryId 商品id
-     * @param categoryDTO
-     * @return
+     * @param categoryId 分类id
      */
     @Override
     public Result updateCategory(Long categoryId, CategoryDTO categoryDTO) {
@@ -183,9 +186,33 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         return categoryMapper.countByIds(categoryIds);
     }
 
+
+
+
+    /**
+     * 查询第一级分类下的二级分类集合
+     * @param categoryId 分类id
+     */
+    @Override
+    public List<Long> getsecondCategoryIdListByFirstCategoryId(Long categoryId) {
+        //查询redis里数据
+        String categoryTreeKey = RedisKeyGenerator.categoryTreeKey();
+        String hashKey = RedisKeyGenerator.categoryTreeHashKey(categoryId);
+        List<Long> secondCategoryIds = RedisConnector.getHashField(categoryTreeKey, hashKey, ArrayList.class);
+        //查不到查其它路径然后回填
+        if (CollectionUtils.isEmpty(secondCategoryIds)) {
+            updateCategoryTreeRedis();
+            secondCategoryIds = RedisConnector.getHashField(categoryTreeKey, hashKey, ArrayList.class);
+        }
+        //第二次查询失败直接返回null
+        if (CollectionUtils.isEmpty(secondCategoryIds)) {
+            return Collections.emptyList();
+        }
+        return secondCategoryIds;
+    }
+
     /**
      * 展示分类树
-     * @return
      */
     @Override
     public Result showCategorytree() {
@@ -195,8 +222,6 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
 
     /**
      * 新增分类
-     * @param categoryDTO
-     * @return
      */
     @Override
     public Result addCategory(CategoryDTO categoryDTO) {
@@ -210,5 +235,31 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         // 4. 返回新增节点的子节点（或者返回成功提示）
         Category savedCategory = getCategoryChildren(category.getId());
         return Result.success(savedCategory);
+    }
+
+    /**
+     * 更新缓存
+     */
+    private void updateCategoryTreeRedis() {
+        List<Category> categoryTree = categoryTreeCache.getIfPresent(CaffeineConstant.CACHE_KEY_CATEGORY_TREE);
+        if (CollectionUtils.isEmpty(categoryTree)) {
+            refreshCategoryCache();
+            categoryTree = categoryTreeCache.getIfPresent(CaffeineConstant.CACHE_KEY_CATEGORY_TREE);
+        }
+        //如果还是空直接跳过
+        if (CollectionUtils.isEmpty(categoryTree)) {
+            return;
+        }
+        String categoryTreeKey = RedisKeyGenerator.categoryTreeKey();
+        //规范设置大小，TODO:空异常怎么办,按理来说我调用的时候都不会抛空，都是内部调用的？
+        HashMap<String, Object> map = new HashMap<>(categoryTree.size());
+        for (Category category : categoryTree) {
+            Long firstCategoryId = category.getId();
+            String hashKey = RedisKeyGenerator.categoryTreeHashKey(firstCategoryId);
+            List<Long> secondCategoryId = category.getChildren().stream().map(Category::getId).collect(Collectors.toList());
+            map.put(hashKey,secondCategoryId);
+        }
+        //TODO：一直需要，ttl后续考虑，这里目前只要手动删除
+        RedisConnector.opsForHash().putAll(categoryTreeKey,map);
     }
 }

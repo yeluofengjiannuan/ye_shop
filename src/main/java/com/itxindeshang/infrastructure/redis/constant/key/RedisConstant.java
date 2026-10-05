@@ -46,5 +46,10 @@ public class RedisConstant {
     public static final String BUCKET_SIGN_PREFIX = "bucket:sign:";
     public static final String PREFIX_COPY = "copy:";
     public static final String BUCKET_PREFIX = "bucket:";
+    public static final String PREFIX_CATEGORY = "category:";
+    //category
+    public static final String TREE = "tree";
+    public static final String FIRST_CATEGORY = "firstCategory:";
+
 }
 

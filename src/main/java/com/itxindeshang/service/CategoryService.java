@@ -21,4 +21,7 @@ public interface CategoryService extends IService<Category> {
     Result updateCategory(Long categoryId, CategoryDTO categoryDTO);
 
     int countByIds(List<Long> categoryIds);
+
+
+    List<Long> getsecondCategoryIdListByFirstCategoryId(Long categoryId);
 }
