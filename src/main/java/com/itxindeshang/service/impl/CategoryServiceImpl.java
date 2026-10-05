@@ -38,15 +38,13 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
     /**
      * 递归 为分类树 set List<Category> children
      * 最终就是很完美的层级
-     * TODO:后续看需要写在service然后overide吗
-     * @param allCategories
-     * @param parentCategories
+     * @param allCategories 分类集合
+     * @param parentCategories 第一级分类集合
      */
     private void buildCategoryTree(List<Category> allCategories, List<Category> parentCategories) {
         if (CollectionUtils.isEmpty(allCategories) || CollectionUtils.isEmpty(parentCategories)) {
             return;
         }
-        //TODO：把这个抽出来
         Map<Long, List<Category>> groupMap = allCategories.stream().collect(Collectors.groupingBy(Category::getParentId));
         List<Category> nextCategoriesList = new ArrayList<>();
         parentCategories.forEach(category -> {
@@ -106,7 +104,6 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         categoryTreeCache.invalidate(CaffeineConstant.CACHE_KEY_CATEGORY_TREE);
         categoryMapCache.invalidate(CaffeineConstant.CACHE_KEY_CATEGORY_MAP);
 
-        //TODO:清除redis缓存
         String categoryTreeKey = RedisKeyGenerator.categoryTreeKey();
         RedisConnector.delete(categoryTreeKey);
     }
@@ -150,7 +147,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
      */
     @Override
     public Result updateCategory(Long categoryId, CategoryDTO categoryDTO) {
-        Category category = copyMapper.categoryDTOToCategroy(categoryDTO);
+        Category category = copyMapper.categoryDTOToCategory(categoryDTO);
         Category categoryCache = getCategoryChildren(categoryId);
         if (categoryCache == null) {
             Category selectedCategory = getById(categoryId);
@@ -225,7 +222,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
      */
     @Override
     public Result addCategory(CategoryDTO categoryDTO) {
-        Category category = copyMapper.categoryDTOToCategroy(categoryDTO);
+        Category category = copyMapper.categoryDTOToCategory(categoryDTO);
         boolean isSuccess = save(category);
         if (!isSuccess) {
             return Result.error(MessageConstant.SQL_MESSAGE_SAVE_ERROR);
@@ -251,7 +248,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
             return;
         }
         String categoryTreeKey = RedisKeyGenerator.categoryTreeKey();
-        //规范设置大小，TODO:空异常怎么办,按理来说我调用的时候都不会抛空，都是内部调用的？
+        //规范设置大小
         HashMap<String, Object> map = new HashMap<>(categoryTree.size());
         for (Category category : categoryTree) {
             Long firstCategoryId = category.getId();

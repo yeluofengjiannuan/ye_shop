@@ -16,7 +16,7 @@ public interface CopyMapper {
 
     UserInfo sysUserToUserInfo(SysUser sysUser);
 
-    Category categoryDTOToCategroy(CategoryDTO categoryDTO);
+    Category categoryDTOToCategory(CategoryDTO categoryDTO);
 
     Product productDTOToProduct(ProductDTO productDTO);
 
