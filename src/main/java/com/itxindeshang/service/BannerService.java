@@ -11,4 +11,10 @@ public interface BannerService extends IService<Banner> {
     Result<Banner> addBanner(BannerDTO bannerDTO);
 
     Result<List<Banner>> getBannerList();
+
+    Result<Banner> updateBanner(BannerDTO bannerDTO,Long bannerId);
+
+    Result<?> deleteBanner(Long id);
+
+
 }

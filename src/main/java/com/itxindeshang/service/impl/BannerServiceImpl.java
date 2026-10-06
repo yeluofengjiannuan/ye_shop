@@ -1,6 +1,7 @@
 package com.itxindeshang.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.itxindeshang.common.constant.MessageConstant;
 import com.itxindeshang.common.mapstruct.CopyMapper;
 import com.itxindeshang.common.result.Result;
 import com.itxindeshang.infrastructure.redis.connect.RedisConnector;
@@ -13,7 +14,6 @@ import com.itxindeshang.service.BannerService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -29,6 +29,9 @@ public class BannerServiceImpl extends ServiceImpl<BannerMapper, Banner> impleme
     public Result<Banner> addBanner(BannerDTO bannerDTO) {
         Banner banner = copyMapper.bannerDTOToBanner(bannerDTO);
         save(banner);
+        //清理缓存
+        String bannerKey = RedisKeyGenerator.banner();
+        RedisConnector.delete(bannerKey);
         return Result.success(banner);
     }
 
@@ -53,4 +56,37 @@ public class BannerServiceImpl extends ServiceImpl<BannerMapper, Banner> impleme
         List<Banner> resultList = bannerList.stream().map(object -> (Banner) object).toList();
         return Result.success(resultList);
     }
+
+    /**
+     * admin 修改 banner
+     */
+    @Override
+    public Result<Banner> updateBanner(BannerDTO bannerDTO,Long bannerId) {
+        Banner banner = copyMapper.bannerDTOToBanner(bannerDTO);
+        banner.setId(bannerId);
+        boolean isSuccess = updateById(banner);
+        if (!isSuccess) {
+            return Result.error(MessageConstant.DATA_ERROR);
+        }
+        //清理缓存
+        String bannerKey = RedisKeyGenerator.banner();
+        RedisConnector.delete(bannerKey);
+        return Result.success(banner);
+    }
+
+    /**
+     * admin 删除 banner
+     */
+    @Override
+    public Result<?> deleteBanner(Long id) {
+        boolean isSuccess = removeById(id);
+        if (!isSuccess) {
+            return Result.error(MessageConstant.DATA_ERROR);
+        }
+        //清理缓存
+        String bannerKey = RedisKeyGenerator.banner();
+        RedisConnector.delete(bannerKey);
+        return Result.success();
+    }
+
 }
