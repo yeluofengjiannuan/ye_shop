@@ -38,6 +38,7 @@ public class RedisConstant {
     public static final String HOT = "hot";
     public static final String ID = "id:";
     public static final String MAX_PRODUCT_ID = "maxProductId";
+    public static final String ALL = "all";
 
 
     /**
@@ -51,5 +52,7 @@ public class RedisConstant {
     public static final String TREE = "tree";
     public static final String FIRST_CATEGORY = "firstCategory:";
 
+    //banner
+    public static final String PREFIX_BANNER = "banner:";
 }
 

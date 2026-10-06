@@ -90,4 +90,6 @@ public interface CopyMapper {
     ProductSpecVO productSpecToProductSpecVO(ProductSpec resultProductSpec);
 
     UserDetailVO sysUserToUserDetailVO(SysUser user);
+
+    Banner bannerDTOToBanner(BannerDTO bannerDTO);
 }

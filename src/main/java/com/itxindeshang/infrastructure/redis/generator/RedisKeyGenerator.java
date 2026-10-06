@@ -337,4 +337,12 @@ public class RedisKeyGenerator {
         return RedisConstant.FIRST_CATEGORY + firstCategoryId;
     }
 
+    /**
+     * banner 轮播图
+     * banner:all
+     * @return
+     */
+    public static String banner() {
+        return RedisConstant.PREFIX_BANNER + RedisConstant.ALL;
+    }
 }
