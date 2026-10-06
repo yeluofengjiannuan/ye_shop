@@ -30,7 +30,7 @@ public class BannerController {
      * 获取首页联播图列表
      */
     @GetMapping("/banner/list")
-    public Result<List<Banner>> getBannerList(){
+    public Result<List<Banner>> getBannerList() {
         return bannerService.getBannerList();
     }
 
@@ -38,8 +38,8 @@ public class BannerController {
      * admin 修改 banner
      */
     @PutMapping("/admin/banner/update")
-    public Result<Banner> updateBanner(@RequestBody @Validated BannerDTO bannerDTO,Long bannerId) {
-        return bannerService.updateBanner(bannerDTO,bannerId);
+    public Result<Banner> updateBanner(@RequestBody @Validated BannerDTO bannerDTO, Long bannerId) {
+        return bannerService.updateBanner(bannerDTO, bannerId);
     }
 
     /**
@@ -50,5 +50,19 @@ public class BannerController {
         return bannerService.deleteBanner(id);
     }
 
+    /**
+     * 上架轮播图
+     */
+    @PutMapping("/admin/banner/onShelf")
+    public Result<?> OnShelfBanner(Long id) {
+        return bannerService.onShelfBanner(id);
+    }
 
+    /**
+     * 下架轮播图
+     */
+    @PutMapping("/admin/banner/offShelf")
+    public Result<?> OffShelfBanner(Long id) {
+        return bannerService.offShelfBanner(id);
+    }
 }

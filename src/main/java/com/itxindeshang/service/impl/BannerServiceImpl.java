@@ -89,4 +89,55 @@ public class BannerServiceImpl extends ServiceImpl<BannerMapper, Banner> impleme
         return Result.success();
     }
 
+    /**
+     * admin 上架 banner
+     * @param id 轮播图id
+     */
+    @Override
+    public Result<?> onShelfBanner(Long id) {
+        Banner banner = getById(id);
+        if (banner == null) {
+            return Result.error(MessageConstant.DATA_ERROR);
+        }
+        if (CommonStatus.INACTIVE != banner.getStatus()) {
+            return Result.error(MessageConstant.DATA_ERROR);
+        }
+        boolean isSuccess = lambdaUpdate().set(Banner::getStatus, CommonStatus.ACTIVE)
+                .eq(Banner::getId, id)
+                .update();
+        if (!isSuccess) {
+            return Result.error(MessageConstant.DATA_ERROR);
+        }
+        //清理缓存
+        String bannerKey = RedisKeyGenerator.banner();
+        RedisConnector.delete(bannerKey);
+        return Result.success();
+    }
+
+    /**
+     * admin 下架 banner
+     * @param id 轮播图id
+     */
+    @Override
+    public Result<?> offShelfBanner(Long id) {
+        Banner banner = getById(id);
+        if (banner == null) {
+            return Result.error(MessageConstant.DATA_ERROR);
+        }
+        if (CommonStatus.ACTIVE != banner.getStatus()) {
+            return Result.error(MessageConstant.DATA_ERROR);
+        }
+        //下架
+        boolean isSuccess = lambdaUpdate().set(Banner::getStatus, CommonStatus.INACTIVE)
+                .eq(Banner::getId, id)
+                .update();
+        if (!isSuccess) {
+            return Result.error(MessageConstant.DATA_ERROR);
+        }
+        //清理缓存
+        String bannerKey = RedisKeyGenerator.banner();
+        RedisConnector.delete(bannerKey);
+        return Result.success();
+    }
+
 }

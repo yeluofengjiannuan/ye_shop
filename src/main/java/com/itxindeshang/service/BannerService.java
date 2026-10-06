@@ -16,5 +16,7 @@ public interface BannerService extends IService<Banner> {
 
     Result<?> deleteBanner(Long id);
 
+    Result<?> onShelfBanner(Long id);
 
+    Result<?> offShelfBanner(Long id);
 }
