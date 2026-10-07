@@ -345,4 +345,12 @@ public class RedisKeyGenerator {
     public static String banner() {
         return RedisConstant.PREFIX_BANNER + RedisConstant.ALL;
     }
+
+    /**
+     * userOrderKey
+     * order: +all +: + userId
+     */
+    public static String userOrderKey(String userId) {
+        return RedisConstant.PREFIX_ORDER +RedisConstant.ALL +":" +userId;
+    }
 }

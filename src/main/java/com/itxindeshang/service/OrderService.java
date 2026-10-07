@@ -7,6 +7,8 @@ import com.itxindeshang.pojo.entity.Order;
 import com.itxindeshang.pojo.vo.OrderWithItemVO;
 import jakarta.validation.constraints.NotBlank;
 
+import java.util.List;
+
 public interface OrderService extends IService<Order> {
     Result<OrderWithItemVO> insertOrder(OrderDTO orderDTO);
 
@@ -16,4 +18,6 @@ public interface OrderService extends IService<Order> {
     Result<?> paySuccess(String orderNo);
 
     Result<OrderWithItemVO> getOrderDesc(@NotBlank String orderNo);
+
+    Result<List<OrderWithItemVO>> getOrderListByPage(@NotBlank String pageName);
 }

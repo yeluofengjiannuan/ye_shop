@@ -4,6 +4,7 @@ import com.itxindeshang.common.result.Result;
 import com.itxindeshang.pojo.dto.OrderDTO;
 import com.itxindeshang.pojo.vo.OrderWithItemVO;
 import com.itxindeshang.service.OrderService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.validation.constraints.NotBlank;
@@ -52,5 +53,14 @@ public class OrderController {
         return orderService.getOrderDesc(orderNo);
     }
 
-
+    /**
+     * 查询指定页面订单列表
+     * @param pageName
+     * @return
+     */
+    @GetMapping("/page/list")
+    @Operation(summary = "查询指定页面订单列表 ", description = "传入指定页面名,查询出订单列表")
+    public Result<List<OrderWithItemVO>> getOrderListByPage(@RequestParam @NotBlank String pageName) {
+        return orderService.getOrderListByPage(pageName);
+    }
 }

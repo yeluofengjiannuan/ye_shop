@@ -1,7 +1,12 @@
 package com.itxindeshang.service.impl;
 
 
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
+import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.itxindeshang.common.constant.MessageConstant;
 import com.itxindeshang.common.exception.BusinessException;
 import com.itxindeshang.common.exception.OrderException;
@@ -12,15 +17,19 @@ import com.itxindeshang.common.result.StockCheckResult;
 import com.itxindeshang.context.BaseContext;
 import com.itxindeshang.infrastructure.mq.utils.MqProducerUtils;
 import com.itxindeshang.infrastructure.redis.connect.RedisConnector;
+import com.itxindeshang.infrastructure.redis.connect.StringRedisConnector;
 import com.itxindeshang.infrastructure.redis.generator.RedisKeyGenerator;
+import com.itxindeshang.infrastructure.redis.properties.RedisCacheTtlProperties;
 import com.itxindeshang.job.delay.CancelUnpaidOrderDelayJob;
 import com.itxindeshang.mapper.OrderMapper;
 import com.itxindeshang.mapper.ProductMapper;
 import com.itxindeshang.pojo.dto.OrderDTO;
 import com.itxindeshang.pojo.dto.OrderItemDTO;
 import com.itxindeshang.pojo.entity.*;
+import com.itxindeshang.pojo.enums.OrderPageEnum;
 import com.itxindeshang.pojo.enums.OrderStatusEnum;
 import com.itxindeshang.pojo.enums.PayTypeEnum;
+import com.itxindeshang.pojo.vo.CouponUserVO;
 import com.itxindeshang.pojo.vo.OrderAddressVO;
 import com.itxindeshang.pojo.vo.OrderWithItemVO;
 import com.itxindeshang.pojo.vo.ProductSpecVO;
@@ -34,6 +43,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -69,6 +79,12 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
 
     @Resource
     private MqProducerUtils mqProducerUtils;
+
+    @Resource
+    private ObjectMapper objectMapper;
+
+    @Resource
+    private RedisCacheTtlProperties redisCacheTtlProperties;
 
     /**
      * 新增订单
@@ -182,8 +198,6 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         result.setAddress(addressVO);
         return Result.success(result);
     }
-
-
 
     // --- 拆分出的私有方法 ---
 
@@ -555,6 +569,65 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
                 .insufficientItems(insufficientItems)
                 .build();
 
+    }
+
+    /**
+     * 查询指定页面订单
+     * @param pageName 订单类型参数
+     */
+    @Override
+    public Result<List<OrderWithItemVO>> getOrderListByPage(String pageName) {
+        String userId = BaseContext.getUserId();
+        OrderPageEnum orderPageEnum = OrderPageEnum.getByPageKey(pageName);
+
+        String userOrderKey = RedisKeyGenerator.userOrderKey(userId);
+        String jsonStr = StringRedisConnector.opsForValue().get(userOrderKey);
+
+        List<Order> userAllOrder = null; // null 表示缓存未命中
+        //解析缓存
+        if (StringUtils.isNotBlank(jsonStr)) {
+            try {
+                userAllOrder = objectMapper.readValue(jsonStr, new TypeReference<List<Order>>() {});
+            } catch (JsonProcessingException e) {
+                log.error("解析用户订单缓存异常,key={}", userOrderKey, e);
+                userAllOrder = null; // 解析失败，回源
+            }
+        }
+
+        // 缓存命中（包括命中空缓存 "[]"），直接返回
+        if (userAllOrder != null) {
+            return buildResult(userAllOrder, orderPageEnum);
+        }
+
+        // 缓存未命中，查库
+        userAllOrder = lambdaQuery().eq(Order::getUserId, Long.valueOf(userId)).list();
+
+        // 写缓存：有数据 30 分钟，空数据 5 分钟
+        try {
+            String json = objectMapper.writeValueAsString(userAllOrder);
+            long ttl = CollectionUtils.isEmpty(userAllOrder) ? 30 : redisCacheTtlProperties.getOrderUserTtl() ;
+            StringRedisConnector.opsForValue().set(userOrderKey, json, ttl, TimeUnit.SECONDS);
+        } catch (JsonProcessingException e) {
+            log.error("写入用户订单缓存序列化异常,key={}", userOrderKey, e);
+        }
+        return buildResult(userAllOrder, orderPageEnum);
+    }
+    /**
+     * 构建订单页面返回方法
+     * @param orders 订单集合
+     * @param orderPageEnum 订单页面枚举
+     */
+    private Result<List<OrderWithItemVO>> buildResult(List<Order> orders, OrderPageEnum orderPageEnum) {
+        List<Order> filtered = orders;
+        if (!OrderPageEnum.ALL.equals(orderPageEnum)) {
+            filtered = orders.stream()
+                    .filter(o -> o.getStatus().getPageCode() == orderPageEnum.getPageCode())
+                    .toList();
+        }
+        List<OrderWithItemVO> vos = filtered.stream()
+                .map(o -> copyMapper.orderToOrderWithItemVO(o))
+                .toList();
+        return Result.success(vos);
     }
 
 

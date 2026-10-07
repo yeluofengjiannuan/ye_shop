@@ -19,4 +19,8 @@ public class RedisCacheTtlProperties {
     private long cartTtl;
 
     private long orderTtl;
+
+    private long orderUserTtl;
+
+    private long couponUserTtl;
 }
