@@ -9,6 +9,7 @@ import io.grpc.internal.ClientStream;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -52,7 +53,7 @@ public class CartController {
      * 修改购物车商品数量
      */
     @PutMapping("/updateQuantity")
-    public Result updateQuantity(@ParameterObject UpdateCartQuantityDTO updateCartQuantityDTO) {
+    public Result updateQuantity(@ParameterObject @Validated UpdateCartQuantityDTO updateCartQuantityDTO) {
         return cartService.updateCartQuantity(updateCartQuantityDTO);
     }
 
