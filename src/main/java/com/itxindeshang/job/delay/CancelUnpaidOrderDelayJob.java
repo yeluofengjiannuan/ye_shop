@@ -1,7 +1,9 @@
 package com.itxindeshang.job.delay;
 
+import com.itxindeshang.context.BaseContext;
 import com.itxindeshang.infrastructure.mq.utils.MqProducerUtils;
 import com.itxindeshang.infrastructure.redis.connect.RedisConnector;
+import com.itxindeshang.infrastructure.redis.connect.StringRedisConnector;
 import com.itxindeshang.infrastructure.redis.generator.RedisKeyGenerator;
 import com.itxindeshang.infrastructure.redis.properties.RedisCacheTtlProperties;
 import com.itxindeshang.mapper.OrderMapper;
@@ -110,6 +112,9 @@ public class CancelUnpaidOrderDelayJob implements DisposableBean {
         }
         // 删除 Redis 缓存
         RedisConnector.delete(RedisKeyGenerator.orderKey(orderNo));
+        String userId = BaseContext.getUserId();
+        String userOrderKey = RedisKeyGenerator.userOrderKey(userId);
+        StringRedisConnector.delete(userOrderKey);
         // 发送 MQ 消息，触发库存恢复等后续逻辑
         mqProducerUtils.sendOrderCancelMessage(orderNo);
         log.info("订单取消成功，orderNo: {}, reason: {}", orderNo, reason);

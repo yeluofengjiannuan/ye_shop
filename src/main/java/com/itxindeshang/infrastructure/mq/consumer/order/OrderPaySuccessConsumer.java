@@ -28,5 +28,6 @@ public class OrderPaySuccessConsumer implements RocketMQListener<String> {
     @Override
     public void onMessage(String orderNo) {
         couponUserMapper.updatePaySuccess(orderNo);
+
     }
 }

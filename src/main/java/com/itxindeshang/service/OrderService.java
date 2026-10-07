@@ -12,7 +12,6 @@ import java.util.List;
 public interface OrderService extends IService<Order> {
     Result<OrderWithItemVO> insertOrder(OrderDTO orderDTO);
 
-
     Result<?> cancelOrder(@NotBlank String orderNo, String cancelReason);
 
     Result<?> paySuccess(String orderNo);

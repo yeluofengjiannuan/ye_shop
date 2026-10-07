@@ -116,7 +116,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
 
             // 6. 后置动作 (发消息)
             cancelUnpaidOrderDelayJob.setUnpaidOrderNoToDelayQueue(context.getOrder().getOrderNo());
-
+            String userId = BaseContext.getUserId();
+            String userOrderKey = RedisKeyGenerator.userOrderKey(userId);
+            StringRedisConnector.delete(userOrderKey);
             return Result.success(resultVO);
 
         } catch (Exception e) {
@@ -144,6 +146,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         //这里加什么判断啊
         cancelUnpaidOrderDelayJob.cancelOrder(orderNo,cancelReason);
         //取消的情形需要多样考虑，根据订单情况考虑是取消，或者说取消要退钱，status==7是处理售后这里估计就可以是退款
+        String userId = BaseContext.getUserId();
+        String userOrderKey = RedisKeyGenerator.userOrderKey(userId);
+        StringRedisConnector.delete(userOrderKey);
         return Result.success();
     }
 
@@ -163,7 +168,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         boolean updateSuccess = lambdaUpdate()
                 .set(Order::getPayTime, LocalDateTime.now())
                 .set(Order::getPayType, PayTypeEnum.WECHAT_PAY)//这里先写微信支付，后续再看怎么优化
-                .set(Order::getStatus, OrderStatusEnum.PENDING_CONFIRM)
+                .set(Order::getStatus, OrderStatusEnum.PENDING_SHIPMENT)
                 .eq(Order::getStatus, OrderStatusEnum.PENDING_PAYMENT) // 乐观锁思想：检查旧状态
                 .eq(Order::getOrderNo, orderNo)
                 .update();
@@ -178,6 +183,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         //这里异步究竟要干嘛？后面再考虑吧TODO：1.发消息更新coupon的locked为used
         mqProducerUtils.sendOrderPaySuccess(orderNo);
         //你说支付回调失败怎么办？我怎么知道，现在只是测试后续第三方接口我再try...
+        String userId = BaseContext.getUserId();
+        String userOrderKey = RedisKeyGenerator.userOrderKey(userId);
+        StringRedisConnector.delete(userOrderKey);
         return Result.success();
     }
 
