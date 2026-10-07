@@ -220,7 +220,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
      * @return
      */
     @Override
-    public Result getProductDetail(Long productId) {
+    public Result getProductDetail(Long productId,boolean isLogin) {
         if (!bloomFilterUtils.contains(productId)) {
             return Result.error(MessageConstant.PRODUCT_NOT_FOUND);
         }
@@ -230,8 +230,11 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         /*if (StringUtils.isBlank(productId)) {
             return Result.error(MessageConstant.TOM_CAT_ERROR);
         }*/
-        String userId  = BaseContext.getUserId();
-        Long userIdLong = StringUtils.isNotBlank(userId) ? Long.valueOf(userId) : null;
+        Long userIdLong = null;
+        if (isLogin) {
+            String userId  = BaseContext.getUserId();
+            userIdLong = StringUtils.isNotBlank(userId) ? Long.valueOf(userId) : null;
+        }
         //第一步：查商品详情缓存
         String productDetailKey = RedisKeyGenerator.productDetail(productId);
         Map<String, Object> productDetailMap = RedisConnector.opsForHash().entries(productDetailKey);

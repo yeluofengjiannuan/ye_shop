@@ -59,8 +59,8 @@ public class ProductController {
      * 获取商品详情
      */
     @GetMapping("/detail")
-    public Result getProductDetail(Long productId) {
-        return productService.getProductDetail(productId);
+    public Result getProductDetail(Long productId,@RequestParam(value = "isLogin" , defaultValue = "false")boolean isLogin) {
+        return productService.getProductDetail(productId,  isLogin);
     }
 
     /**

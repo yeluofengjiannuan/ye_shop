@@ -20,7 +20,7 @@ public interface ProductService extends IService<Product> {
 
     Result<CursorCommonResult> searchProductList(@Valid CursorCommonEntity cursorCommonEntity, String keyword);
 
-    Result getProductDetail(Long productId);
+    Result getProductDetail(Long productId,boolean isLogin);
 
 
     Result offShelfProduct(Long productId);

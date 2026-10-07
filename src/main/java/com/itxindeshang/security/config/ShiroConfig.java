@@ -142,6 +142,17 @@ public class ShiroConfig {
         filterChainDefinitionMap.put("/api/user/refresh/**", "anon");
         filterChainDefinitionMap.put("/api/user/create/account", "anon");
         filterChainDefinitionMap.put("/api/user/product/comment/**/show", "optionalJwt");
+        filterChainDefinitionMap.put("/api/banner/list", "anon");
+        filterChainDefinitionMap.put("/api/product/detail", "optionalJwt");
+        filterChainDefinitionMap.put("/api/product/**", "anon");
+
+        filterChainDefinitionMap.put("/api/category/**", "anon");
+        filterChainDefinitionMap.put("/api/upload/image", "anon");
+        filterChainDefinitionMap.put("/api/about/us/introduce", "anon");
+        // 静态资源
+        filterChainDefinitionMap.put("/css/**", "anon");
+        filterChainDefinitionMap.put("/js/**", "anon");
+        filterChainDefinitionMap.put("/images/**", "anon");
         // 文档首页，精确匹配 doc.html
         filterChainDefinitionMap.put("/doc.html", "anon");
         filterChainDefinitionMap.put("/doc.html/**", "anon");
@@ -151,7 +162,7 @@ public class ShiroConfig {
         // API 文档数据接口
         filterChainDefinitionMap.put("/v3/api-docs/**", "anon");
 
-// 静态资源（JS/CSS/字体等）
+        // 静态资源（JS/CSS/字体等）
         filterChainDefinitionMap.put("/webjars/**", "anon");
         //TODO：测试完记得弄回来
         filterChainDefinitionMap.put("/**", "jwt");
