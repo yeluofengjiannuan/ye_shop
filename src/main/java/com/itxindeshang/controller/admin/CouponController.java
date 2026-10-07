@@ -10,7 +10,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,9 +24,8 @@ public class CouponController {
     /**
      * 管理员分发优惠券
      */
-    //TODO:好歹返回id
     @PostMapping("/admin/coupon/release")
-    public Result<?> saveCouponAdmin(@RequestBody @Valid @NotNull CouponCreateDTO couponCreateDTO) {
+    public Result<Long> saveCouponAdmin(@RequestBody @Valid @NotNull CouponCreateDTO couponCreateDTO) {
         return couponService.saveCouponAdmin(couponCreateDTO);
     }
 

@@ -3,7 +3,10 @@ package com.itxindeshang.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ArrayUtils;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
+import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.itxindeshang.common.constant.MessageConstant;
 import com.itxindeshang.common.exception.CouponException;
 import com.itxindeshang.common.generator.SnowflakeIdGenerator;
@@ -12,6 +15,7 @@ import com.itxindeshang.common.result.Result;
 import com.itxindeshang.context.BaseContext;
 import com.itxindeshang.infrastructure.mq.utils.MqProducerUtils;
 import com.itxindeshang.infrastructure.redis.connect.RedisConnector;
+import com.itxindeshang.infrastructure.redis.connect.StringRedisConnector;
 import com.itxindeshang.infrastructure.redis.generator.RedisKeyGenerator;
 import com.itxindeshang.mapper.*;
 import com.itxindeshang.pojo.UserInfo;
@@ -25,7 +29,6 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
-import org.springframework.boot.autoconfigure.cache.CacheProperties;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DuplicateKeyException;
@@ -38,6 +41,7 @@ import org.springframework.lang.Nullable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.fasterxml.jackson.core.type.TypeReference;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -85,6 +89,9 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
 
     @Resource
     private CouponProductService couponProductService;
+
+    @Resource
+    private ObjectMapper objectMapper;
 
     /**
      * 管理员分发优惠券
@@ -354,6 +361,9 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
                 .createTime(LocalDateTime.now())
                 .build();
 
+        //清除用户拥有优惠券redis缓存
+        String couponUserListKey = RedisKeyGenerator.couponUserList(Long.valueOf(userId));
+        RedisConnector.delete(couponUserListKey);
         return Result.success(couponUser);
     }
 
@@ -482,7 +492,9 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
                     .build();
 
             couponUserMapper.insert(couponUser);
-
+            //清除用户拥有优惠券redis缓存
+            String couponUserListKey = RedisKeyGenerator.couponUserList(Long.valueOf(userId));
+            RedisConnector.delete(couponUserListKey);
             return Result.success(couponUser);
 
         } catch (InterruptedException e) {
@@ -688,7 +700,6 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
     /**
      * 更新领劵后 N 天 优惠券缓存
      * 维护 ZSet (其中存储 couponUserId)监控状态变化 和 Set 存储用户 id
-     *
      * @param couponList 领券后 N 天优惠券列表
      */
     private void updateAfterReceiveListCache(List<Coupon> couponList) {
@@ -847,10 +858,22 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
         String userId = BaseContext.getUserId();
         //查缓存
         String couponUserListKey = RedisKeyGenerator.couponUserList(Long.valueOf(userId));
-        List<CouponUserVO> couponUserList = (List<CouponUserVO>)RedisConnector.opsForValue().get(couponUserListKey);
+//        List<CouponUserVO> couponUserList = (List<CouponUserVO>)RedisConnector.opsForValue().get(couponUserListKey);
+        String jsonStr = StringRedisConnector.opsForValue().get(couponUserListKey);
+        List<CouponUserVO> couponUserList = new ArrayList<>();
+        if (StringUtils.isNotBlank(jsonStr)) {
+            // TypeReference解决泛型List反序列化
+            try {
+                couponUserList = objectMapper.readValue(jsonStr, new TypeReference<List<CouponUserVO>>() {});
+            } catch (JsonProcessingException e) {
+                log.error("解析用户优惠券缓存异常,key={}", couponUserListKey, e);
+                // 解析失败，置空，让程序走查库刷新缓存
+                couponUserList = null;
+            }
+        }
         // 2. 缓存未命中，查库拼装
         if (CollectionUtils.isEmpty(couponUserList)) {
-            //查库拼装
+            //查库拼装(所有优惠券
             List<CouponUser> list = couponUserService.lambdaQuery().eq(CouponUser::getUserId, userId).list();
             if (CollectionUtils.isEmpty(list)) {
                 return Result.success();
@@ -866,7 +889,15 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
                 Coupon coupon = couponMap.get(couponUser.getCouponId());
                 return copyMapper.toCouponUserVO(coupon, couponUser);
             }).toList();
-            RedisConnector.opsForValue().set(couponUserListKey,couponUserList);
+//            RedisConnector.opsForValue().set(couponUserListKey,couponUserList);
+            // 写入缓存
+            try {
+                String json = objectMapper.writeValueAsString(couponUserList);
+                // 设置过期时间，30分钟示例
+                StringRedisConnector.opsForValue().set(couponUserListKey, json, 30, TimeUnit.MINUTES);
+            } catch (JsonProcessingException e) {
+                log.error("写入用户优惠券缓存序列化异常,key={}", couponUserListKey, e);
+            }
         }
         return  Result.success(couponUserList);
     }
