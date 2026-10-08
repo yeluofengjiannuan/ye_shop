@@ -11,6 +11,7 @@ import com.itxindeshang.pojo.entity.ProductSearchKeyword;
 import com.itxindeshang.pojo.vo.SimpleProductVO;
 import com.itxindeshang.service.ProductSearchKeywordService;
 import com.itxindeshang.service.ProductService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import org.springframework.validation.annotation.Validated;
@@ -151,5 +152,14 @@ public class ProductController {
     @GetMapping("/scroll/query/list")
     public Result<SimpleCursorCommonResult> getSimpleProductByScrollQuery(Long beginId, @RequestParam(defaultValue = "80") Integer querySize){
         return  productService.getSimpleProductByScrollQuery(beginId,querySize);
+    }
+
+    /**
+     * 获取列表商品简单介绍
+     *
+     */
+    @GetMapping("/brief/list")
+    public Result<List<SimpleProductVO>> getBriefProduct(@RequestParam(value = "productIds") @Validated List<Long> productIds) {
+        return productService.getBriefProduct(productIds);
     }
 }

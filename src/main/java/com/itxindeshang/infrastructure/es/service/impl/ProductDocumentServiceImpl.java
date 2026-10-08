@@ -176,6 +176,27 @@ public class ProductDocumentServiceImpl implements ProductDocumentService {
         }
         //二级分类游标查询
         return productEsRepository.searchCursorByProductSortTypeAndCategoryId(productSortTypeEnum, categoryId, limit, sortValue, productId);
+    }
 
+    /**
+     * 通过 id 列表批量获取商品文档
+     * @param idList id 列表
+     * @return 商品文档列表
+     */
+    @Override
+    public List<ProductDocument> getProductDocumentByIdList(List<Long> idList) {
+        if (Objects.isNull(idList) || idList.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return productEsRepository.getByIdList(idList);
+    }
+
+    /**
+     * 批量保存商品文档列表
+     * @param productDocumentList 商品文档列表
+     */
+    @Override
+    public void batchSaveProductDocument(List<ProductDocument> productDocumentList) {
+        productEsRepository.batchSave(productDocumentList);
     }
 }

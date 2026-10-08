@@ -69,4 +69,7 @@ public interface ProductMapper extends BaseMapper<Product> {
     void restoreProductAndSpecStock(@Param("productId") Long productId,
                                    @Param("specId") Long specId,
                                    @Param("quantity") Integer quantity);
+
+
+    List<Product> getBriefProduct(@Param("productIdsList") List<Long> productIdsList);
 }

@@ -4,6 +4,7 @@ import com.itxindeshang.infrastructure.es.document.ProductDocument;
 import com.itxindeshang.pojo.enums.CommonStatus;
 import com.itxindeshang.pojo.enums.ProductSortTypeEnum;
 
+import java.util.Arrays;
 import java.util.List;
 
 public interface ProductDocumentService {
@@ -69,4 +70,18 @@ public interface ProductDocumentService {
      * @return 查询文档列表
      */
     List<ProductDocument> searchByCursorByCategoryId(Integer limit, ProductSortTypeEnum productSortTypeEnum, String sortValue, Long productId, Long categoryId, boolean isFirstCategoryId);
+
+    /**
+     * 通过 id 列表批量获取商品文档
+     * @param idList id 列表
+     * @return 商品文档列表
+     */
+    List<ProductDocument> getProductDocumentByIdList(List<Long> idList);
+
+    /**
+     * 批量保存商品文档列表
+     * @param productDocumentList 商品文档列表
+     */
+    void batchSaveProductDocument(List<ProductDocument> productDocumentList);
+
 }

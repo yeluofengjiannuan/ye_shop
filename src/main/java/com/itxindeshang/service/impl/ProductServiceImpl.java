@@ -36,6 +36,8 @@ import com.itxindeshang.util.JacksonUtils;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.client.producer.SendCallback;
+import org.apache.rocketmq.client.producer.SendResult;
 import org.redisson.api.RBucket;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
@@ -650,6 +652,60 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         Long maxProductDocumentId = productDocumentService.getMaxProductDocumentId();
         String maxProductIdKey = RedisKeyGenerator.maxProductId();
         RedisConnector.opsForValue().set(maxProductIdKey,maxProductDocumentId);
+    }
+
+    /**
+     * 获取商品简单介绍
+     * @param productIds 商品id
+     * @return 商品简单介绍列表
+     */
+    @Override
+    public Result<List<SimpleProductVO>> getBriefProduct(List<Long> productIds) {
+        Map<Long, SimpleProductVO> resultMap = new HashMap<>(productIds.size());
+        List<SimpleProductVO> resultList = new ArrayList<>(productIds.size());
+        //先进行初始化,后续value为null查询数据库数据
+        for (Long id : productIds) {
+            resultMap.put(id, null);
+        }
+        //查询es
+        List<SimpleProductVO> simpleProductVOListByEs = productDocumentService.getProductDocumentByIdList(productIds).stream().map(copyMapper::ProductDocumentToSimpleProductVO).toList();
+        //将es查询结果放入map
+        for (SimpleProductVO s : simpleProductVOListByEs) {
+            resultMap.put(s.getId(), s);
+        }
+        //如果es查询结果与商品id数量一致,则直接返回
+        if (productIds.size() == simpleProductVOListByEs.size()) {
+            for (Long id : productIds) {
+                SimpleProductVO simpleProductVO = resultMap.get(id);
+                resultList.add(simpleProductVO);
+            }
+            return Result.success(resultList);
+        }
+        //查询es中没有的数据库数据
+        List<Long> needQueryBySQLIdList = new ArrayList<>();
+        resultMap.forEach((key, value) -> {
+            if (Objects.isNull(value)) {
+                needQueryBySQLIdList.add(key);
+            }
+        });
+        //查询数据库
+        List<Product> list = productMapper.getBriefProduct(needQueryBySQLIdList);
+        //将数据库查询结果放入map
+        List<ProductDocument> productDocumentList = list.stream().map(copyMapper::productToProductDocument).toList();
+        //异步通知 mq 同步商品文档到 es(防御性编程)
+        if (CollectionUtils.isEmpty(productDocumentList)) {
+            return Result.success(resultList);
+        }
+        mqProducerUtils.sendSyncSaveProductDocument(productDocumentList);
+
+        list.stream().map(copyMapper::productToSimpleProductVO)
+                .forEach(simpleProductVO -> resultMap.put(simpleProductVO.getId(), simpleProductVO));
+        for (int i = 0; i < productIds.size(); i++) {
+            Long id = productIds.get(i);
+            SimpleProductVO simpleProductVO = resultMap.get(id);
+            resultList.add(i, simpleProductVO);
+        }
+        return Result.success(resultList);
     }
 
     /**

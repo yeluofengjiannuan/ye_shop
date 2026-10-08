@@ -109,4 +109,16 @@ public interface ProductEsRepository {
      */
     List<ProductDocument> searchCursorByProductSortTypeAndCategoryId(ProductSortTypeEnum productSortTypeEnum, Long categoryId, Integer limit, String sortValue, Long productId);
 
+    /**
+     * 根据 id 列表获取商品文档列表
+     * @param idList 商品 id 列表
+     * @return 商品文档列表
+     */
+    List<ProductDocument> getByIdList(List<Long> idList);
+
+    /**
+     * 批量保存商品文档
+     * @param documents 要批量保存的文档
+     */
+    void batchSave(List<ProductDocument> documents);
 }

@@ -3,6 +3,8 @@ package com.itxindeshang.infrastructure.es.repository.impl;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.SortOrder;
+import co.elastic.clients.elasticsearch._types.query_dsl.Query;
+import co.elastic.clients.elasticsearch.core.BulkRequest;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
@@ -15,6 +17,7 @@ import com.itxindeshang.pojo.enums.ProductSortTypeEnum;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -341,6 +344,65 @@ public class ProductEsRepositoryImpl implements ProductEsRepository {
             throw new RuntimeException("es 游标 limit 查询失败");
         }
 
+    }
+
+    /**
+     * 根据 id 列表获取商品文档列表
+     * @param idList 商品 id 列表
+     * @return 商品文档列表
+     */
+    @Override
+    public List<ProductDocument> getByIdList(List<Long> idList) {
+        if (CollectionUtils.isEmpty(idList)) {
+            return List.of();
+        }
+
+        try {
+            //构造查询条件
+            Query query = Query.of(q -> q.ids(i -> i.values(idList.stream().map(String::valueOf).collect(Collectors.toList()))));
+            SearchResponse<ProductDocument> searchResponse = esClient.search(s -> s.index(EsIndexEnum.PRODUCT.getIndexName())
+                            .query(query),
+                    ProductDocument.class
+            );
+            return searchResponse.hits().hits().stream()
+                    .map(Hit::source)
+                    .collect(Collectors.toList());
+        } catch (IOException e) {
+            throw new RuntimeException("ES 批量根据ID查询失败", e);
+        }
+
+
+    }
+
+    /**
+     * 批量保存商品文档
+     * @param documents 要批量保存的文档
+     */
+    @Override
+    @SuppressWarnings("unchecked")
+    public void batchSave(List<ProductDocument> documents) {
+        if (CollectionUtils.isEmpty(documents)) {
+            return;
+        }
+        try {
+            BulkRequest.Builder bulkBuilder = new BulkRequest.Builder();
+            for (ProductDocument doc : documents) {
+                if (doc == null || doc.getId() == null) {
+                    throw new IllegalArgumentException("商品文档 或 ID不能为空");
+                }
+                //指定索引库和文档id
+                bulkBuilder.operations(op -> op
+                        .index(idx -> idx
+                                .index(EsIndexEnum.PRODUCT.getIndexName())
+                                .id(doc.getId().toString())
+                                .document(doc)
+                        )
+                );
+            }
+            esClient.bulk(bulkBuilder.build());
+        } catch (IOException e) {
+            throw new RuntimeException("ES 批量保存商品失败", e);
+        }
     }
 
     /**

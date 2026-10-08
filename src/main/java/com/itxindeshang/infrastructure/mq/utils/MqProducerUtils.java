@@ -1,6 +1,7 @@
 package com.itxindeshang.infrastructure.mq.utils;
 
 import com.itxindeshang.common.constant.MessageConstant;
+import com.itxindeshang.infrastructure.es.document.ProductDocument;
 import com.itxindeshang.infrastructure.mq.constant.order.MqOrderConstant;
 import com.itxindeshang.infrastructure.mq.constant.product.MqProductConstant;
 import com.itxindeshang.pojo.entity.CouponReceiveMessage;
@@ -11,6 +12,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 @Component
 @Slf4j
@@ -44,5 +47,9 @@ public class MqProducerUtils {
     public void sendProductUpdateStatus(Long productId, CommonStatus status) {
         ProductSyncMessage productSyncMessage = ProductSyncMessage.builder().productId(productId).status(status).build();
         rocketMQTemplate.convertAndSend(MqProductConstant.PRODUCT_TOPIC + ":" + MqProductConstant.UPDATE_STATUS, productSyncMessage);
+    }
+
+    public void sendSyncSaveProductDocument(List<ProductDocument> productDocumentList) {
+        rocketMQTemplate.convertAndSend(MqProductConstant.PRODUCT_TOPIC + ":" + MqProductConstant.SYNC_SAVE, productDocumentList);
     }
 }

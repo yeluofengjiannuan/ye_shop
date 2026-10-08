@@ -144,6 +144,7 @@ public class ShiroConfig {
         filterChainDefinitionMap.put("/api/user/product/comment/**/show", "optionalJwt");
         filterChainDefinitionMap.put("/api/banner/list", "anon");
         filterChainDefinitionMap.put("/api/product/detail", "optionalJwt");
+        filterChainDefinitionMap.put("/api/product/brief/list", "optionalJwt");
         filterChainDefinitionMap.put("/api/product/**", "anon");
 
         filterChainDefinitionMap.put("/api/category/**", "anon");

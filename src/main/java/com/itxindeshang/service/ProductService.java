@@ -49,4 +49,6 @@ public interface ProductService extends IService<Product> {
      * 初始化最大商品id es -> redis
      */
     void initMaxProductId();
+
+    Result<List<SimpleProductVO>> getBriefProduct(List<Long> productIds);
 }

@@ -92,4 +92,7 @@ public interface CopyMapper {
     UserDetailVO sysUserToUserDetailVO(SysUser user);
 
     Banner bannerDTOToBanner(BannerDTO bannerDTO);
+
+    @Mapping(source = "id" , target = "id")
+    SimpleProductVO productToSimpleProductVO(Product product);
 }

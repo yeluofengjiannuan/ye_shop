@@ -83,6 +83,36 @@
         AND ps.id = #{specId}
     </update>
 
+    <sql id="selectSimpleAllProduct_Where_SQL">
+        SELECT p.id ,
+        p.category_id,
+        p.name,
+        p.sell_point,
+        p.price ,
+        p.enterprise_price,
+        p.stock,
+        p.cover_image AS image,
+        p.description,
+        p.view_count,
+        p.sales_count,
+        p.status,
+        p.create_time,
+        p.update_time
+        FROM product p
+
+        WHERE p.status = 1
+    </sql>
+
+    <select id="getBriefProduct" resultType="com.itxindeshang.pojo.entity.Product">
+        <include refid="selectSimpleAllProduct_Where_SQL"/>
+        and p.id in
+        <foreach collection="productIdsList" open="(" close=")" separator="," item="productId">
+            #{productId}
+        </foreach>
+    </select>
+
+
+
     <select id="selectByProductId" resultMap="ProductWithImageAndSpecResultMap">
         SELECT p.id                AS product_id,
         p.category_id,
