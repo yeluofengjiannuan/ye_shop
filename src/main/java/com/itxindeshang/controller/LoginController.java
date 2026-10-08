@@ -1,8 +1,10 @@
 package com.itxindeshang.controller;
 
 import com.itxindeshang.common.result.Result;
+import com.itxindeshang.context.BaseContext;
 import com.itxindeshang.pojo.UserInfo;
 import com.itxindeshang.pojo.dto.UserDTO;
+import com.itxindeshang.pojo.entity.SysUser;
 import com.itxindeshang.service.LoginService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -59,5 +61,15 @@ public class LoginController {
                            @RequestParam @NotBlank String password,
                            @RequestParam @NotBlank String phone) {
         return loginService.register(username, password, phone);
+    }
+
+    /**
+     * 获取用户角色权限详情
+     */
+    @GetMapping("/role/permission/get")
+    public Result<SysUser> getRolePermission() {
+        String userId = BaseContext.getUserId();
+        SysUser sysUser = loginService.getSysUserByUserIdWithRolesAndPermissions(Long.valueOf(userId));
+        return Result.success(sysUser);
     }
 }

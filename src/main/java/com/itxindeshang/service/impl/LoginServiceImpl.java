@@ -85,7 +85,6 @@ public class LoginServiceImpl extends ServiceImpl<UserMapper, SysUser> implement
     public SysUser getSysUserByUserIdWithRolesAndPermissions(Long userId) {
         if (Objects.isNull(userId)) {
             return null;
-
         }
         return sysUserMapper.getSysUserByUserIdWithRolesAndPermissions(userId);
     }
