@@ -74,3 +74,6 @@ aliyun:
     bucket-name: ${aliyun.oss.bucket-name}
 shiro:
   enabled: false
+
+netty:
+  port: 8888
