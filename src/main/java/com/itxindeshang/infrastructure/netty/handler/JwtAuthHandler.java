@@ -32,16 +32,13 @@ public class JwtAuthHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        // ============ 临时调试日志 ============
-        log.info("【Netty-Debug】JwtAuthHandler.channelRead 收到 msg 类型: {}", msg.getClass().getName());
-        // =====================================
         if (!(msg instanceof FullHttpRequest request)) {
             ctx.fireChannelRead(msg);
             return;
         }
 
         String uri = request.uri();
-        
+
         // 1. 过滤非聊天路径
         if (!uri.startsWith("/ws/chat")) {
             ctx.fireChannelRead(msg);

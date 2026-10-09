@@ -27,6 +27,32 @@ public class ChatController {
 
     private final ChatService chatService;
 
+    @GetMapping("/sessions")
+    @Operation(summary = "获取当前用户的会话列表")
+    public Result<List<ChatSessionVO>> getSessionList() {
+        Long userId = Long.valueOf(BaseContext.getUserId());
+        List<ChatSessionVO> list = chatService.getSessionList(userId);
+        return Result.success(list);
+    }
+
+    @GetMapping("/history/{contactId}")
+    @Operation(summary = "分页获取与某人的聊天历史")
+    public Result<PageResult> getChatHistory(
+            @PathVariable Long contactId,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "20") Integer size) {
+        Long userId = Long.valueOf(BaseContext.getUserId());
+        Page<ChatMessage> chatPage = chatService.getChatHistory(userId, contactId, page, size);
+
+        PageResult result = PageResult.builder()
+                .list(chatPage.getRecords())
+                .total(chatPage.getTotal())
+                .pageNum(page)
+                .pageSize(size)
+                .build();
+
+        return Result.success(result);
+    }
 
     @PostMapping("/clearUnread/{contactId}")
     @Operation(summary = "手动清除某会话的未读数")

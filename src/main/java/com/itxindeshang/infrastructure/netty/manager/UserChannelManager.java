@@ -28,7 +28,7 @@ public class UserChannelManager {
     public void unbind(Channel channel) {
         Long userId = channel.attr(USER_ID_KEY).get();
         if (userId != null) {
-            // ✅ 关键：只有 Map 里当前映射的是这条 channel 才删除
+            // 关键：只有 Map 里当前映射的是这条 channel 才删除
             // 用户可能多设备同时在线（或重连后新 channel 覆盖了旧的），
             // 旧连接断开时不能把新连接的映射也删掉
             USER_CHANNELS.remove(userId, channel);

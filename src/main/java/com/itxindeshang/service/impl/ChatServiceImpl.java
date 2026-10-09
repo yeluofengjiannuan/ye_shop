@@ -4,15 +4,18 @@ import com.itxindeshang.mapper.ChatMessageMapper;
 import com.itxindeshang.mapper.ChatSessionMapper;
 import com.itxindeshang.pojo.entity.ChatMessage;
 import com.itxindeshang.pojo.entity.ChatSession;
+import com.itxindeshang.pojo.vo.ChatSessionVO;
 import com.itxindeshang.service.ChatService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 聊天服务实现类
@@ -78,6 +81,27 @@ public class ChatServiceImpl extends ServiceImpl<ChatMessageMapper, ChatMessage>
         return message;
     }
 
+    /**
+     * 获取会话列表
+     */
+    @Override
+    public List<ChatSessionVO> getSessionList(Long userId) {
+        return chatSessionMapper.selectSessionList(userId);
+    }
+
+    /**
+     * 分页获取历史消息
+     */
+    @Override
+    public Page<ChatMessage> getChatHistory(Long userId, Long contactId, Integer page, Integer size) {
+        Page<ChatMessage> chatPage = new Page<>(page, size);
+        return this.page(chatPage, new LambdaQueryWrapper<ChatMessage>()
+                .and(wrapper -> wrapper
+                        .eq(ChatMessage::getFromUserId, userId).eq(ChatMessage::getToUserId, contactId)
+                        .or()
+                        .eq(ChatMessage::getFromUserId, contactId).eq(ChatMessage::getToUserId, userId))
+                .orderByDesc(ChatMessage::getCreateTime));
+    }
 
     /**
      * 清除未读数
