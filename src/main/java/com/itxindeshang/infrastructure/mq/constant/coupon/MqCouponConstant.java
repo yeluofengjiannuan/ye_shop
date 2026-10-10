@@ -15,4 +15,6 @@ public class MqCouponConstant {
     //consumer group
     public static final String CONSUMER_GROUP_COUPON_UPDATE_STATUS = "coupon-status-consumer-group";
 
+    public static final String CONSUMER_GROUP_COUPON_RECEIVE = "coupon-receive-group";
+    public static final String TOPIC_COUPON_RECEIVE = "coupon-receive-topic";
 }

@@ -1,5 +1,6 @@
 package com.itxindeshang.infrastructure.mq.consumer.coupon;
 
+import com.itxindeshang.infrastructure.mq.constant.coupon.MqCouponConstant;
 import com.itxindeshang.pojo.entity.CouponReceiveMessage;
 import com.itxindeshang.service.CouponService;
 import jakarta.annotation.Resource;
@@ -12,8 +13,8 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @RocketMQMessageListener(
-        topic = "coupon-receive-topic",
-        consumerGroup = "coupon-receive-group"
+        consumerGroup = MqCouponConstant.CONSUMER_GROUP_COUPON_RECEIVE,
+        topic = MqCouponConstant.TOPIC_COUPON_RECEIVE
 )
 public class CouponConsumer implements RocketMQListener<CouponReceiveMessage> {
 
