@@ -82,6 +82,27 @@
         p.id = #{productId}
         AND ps.id = #{specId}
     </update>
+    <update id="batchUpdateSalesCount">
+        UPDATE product
+        SET sales_count = CASE id
+        <foreach collection="map" index="id" item="qty">
+            WHEN #{id} THEN sales_count + #{qty}
+        </foreach>
+        END
+        WHERE id IN
+        <foreach collection="map" index="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+    <update id="batchRestoreStockByOrderNo">
+        UPDATE product p
+        INNER JOIN order_item oi ON p.id = oi.product_id
+        INNER JOIN product_spec ps ON ps.id = oi.spec_id
+        SET
+        p.stock = p.stock + oi.quantity,
+        ps.stock = ps.stock + oi.quantity
+        WHERE oi.order_no = #{orderNo}
+    </update>
 
     <sql id="selectSimpleAllProduct_Where_SQL">
         SELECT p.id ,

@@ -21,4 +21,6 @@ public interface OrderService extends IService<Order> {
     Result<List<OrderWithItemVO>> getOrderListByPage(@NotBlank String pageName);
 
     void syncCancel(String orderNo);
+
+    void syncPaySuccess(String orderNo);
 }

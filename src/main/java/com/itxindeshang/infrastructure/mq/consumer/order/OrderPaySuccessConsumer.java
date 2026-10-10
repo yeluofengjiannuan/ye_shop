@@ -1,17 +1,13 @@
 package com.itxindeshang.infrastructure.mq.consumer.order;
 
 import com.itxindeshang.infrastructure.mq.constant.order.MqOrderConstant;
-import com.itxindeshang.mapper.CouponUserMapper;
-import com.itxindeshang.mapper.ProductMapper;
-import com.itxindeshang.pojo.entity.OrderItem;
-import com.itxindeshang.service.OrderItemService;
+import com.itxindeshang.service.OrderService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 
 @RocketMQMessageListener(
         topic = MqOrderConstant.ORDER_TOPIC,
@@ -22,12 +18,14 @@ import java.util.List;
 @Slf4j
 public class OrderPaySuccessConsumer implements RocketMQListener<String> {
 
+
+
     @Resource
-    private CouponUserMapper couponUserMapper;
+    private OrderService orderService;
 
     @Override
     public void onMessage(String orderNo) {
-        couponUserMapper.updatePaySuccess(orderNo);
+        orderService.syncPaySuccess(orderNo);
 
     }
 }

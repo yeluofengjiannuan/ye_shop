@@ -11,6 +11,7 @@ import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
 import java.util.List;
+import java.util.Map;
 
 @Mapper
 public interface ProductMapper extends BaseMapper<Product> {
@@ -72,4 +73,15 @@ public interface ProductMapper extends BaseMapper<Product> {
 
 
     List<Product> getBriefProduct(@Param("productIdsList") List<Long> productIdsList);
-}
+
+    /**
+     * 批量更新商品销售量
+     * @param productQuantityMap 商品Id-销售量
+     */
+    void batchUpdateSalesCount(@Param("map")Map<Long, Integer> productQuantityMap);
+
+    /**
+     * 批量恢复商品库存
+     * @param orderNo 订单号
+     */
+    int batchRestoreStockByOrderNo(@Param("orderNo") String orderNo);}

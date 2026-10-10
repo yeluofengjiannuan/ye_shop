@@ -636,34 +636,51 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     @Transactional(rollbackFor = Exception.class)
     public void syncCancel(String orderNo) {
         log.info("收到订单取消消息，开始恢复库存，orderNo: {}", orderNo);
+        // 1. 查订单是否存在
+        Order order = lambdaQuery().eq(Order::getOrderNo, orderNo).one();
+        if (order == null) {
+            log.warn("取消订单：订单不存在（可能已被处理），orderNo: {}", orderNo);
+            return;  // 幂等：订单不存在就不用恢复了
+        }
 
-        // 1. 查询订单下的所有商品
+        // 2. 恢复库存（批量 JOIN）
+        int stockRows = productMapper.batchRestoreStockByOrderNo(orderNo);
+        if (stockRows == 0) {
+            log.error("取消订单：恢复库存影响 0 行，orderNo: {}", orderNo);
+            throw new OrderException("恢复库存失败"+orderNo);  // 触发 RocketMQ 重试
+        }
+
+        // 3. 恢复优惠券（用了券才执行）
+        if (order.getCouponUserId() != null) {
+            int couponRows = couponUserMapper.updateCancel(orderNo);
+            if (couponRows == 0) {
+                log.error("取消订单：优惠券恢复影响 0 行，orderNo: {}", orderNo);
+                throw new OrderException("恢复优惠券失败"+orderNo);  // 触发 RocketMQ 重试
+            }
+            log.info("恢复优惠券成功，orderNo: {}", orderNo);
+        }
+
+        log.info("订单取消处理完成，orderNo: {}", orderNo);   }
+
+    /** 订单支付成功数据库异步操作
+     * @param orderNo 订单号
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void syncPaySuccess(String orderNo) {
+        couponUserMapper.updatePaySuccess(orderNo);
+        // 2. 更新商品销售额
+        //2.1查询订单下的所有商品
         List<OrderItem> items = orderItemService.lambdaQuery().eq(OrderItem::getOrderNo,orderNo).list();
         if (items == null || items.isEmpty()) {
             log.warn("订单商品为空，orderNo: {}", orderNo);
             return;
         }
-        // 2. 逐个恢复库存
-        for (OrderItem item : items) {
-            productMapper.restoreProductAndSpecStock(
-                    item.getProductId(),
-                    item.getSpecId(),
-                    item.getQuantity()
-            );
-        }
-        //3.恢复coupon
-        //3.1查询是否使用coupon了
-        Order order = lambdaQuery().eq(Order::getOrderNo,orderNo).one();
-        if (order.getCouponUserId() == null) {
-            // 没有使用coupon，直接返回
-            return;
-        }
-        int count = couponUserMapper.updateCancel(orderNo);
-        if (count == 0) {
-            // 恢复coupon失败，回滚事务
-            throw new RuntimeException("恢复coupon失败，orderNo: " + orderNo);
-        }
-        log.info("恢复coupon成功，orderNo: {}", orderNo);
+        //Map<Long,Integer> productId,quantity,quantity是相同productId的quantity sum起来
+        Map<Long,Integer> productQuantityMap = items.stream().collect(Collectors.toMap(OrderItem::getProductId, OrderItem::getQuantity, Integer::sum));
+        //2.2更新商品销售额
+        productMapper.batchUpdateSalesCount(productQuantityMap);
+
     }
 
     /**
