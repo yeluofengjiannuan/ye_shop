@@ -19,4 +19,6 @@ public interface OrderService extends IService<Order> {
     Result<OrderWithItemVO> getOrderDesc(@NotBlank String orderNo);
 
     Result<List<OrderWithItemVO>> getOrderListByPage(@NotBlank String pageName);
+
+    void syncCancel(String orderNo);
 }

@@ -8,7 +8,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.itxindeshang.common.constant.MessageConstant;
-import com.itxindeshang.common.exception.BusinessException;
 import com.itxindeshang.common.exception.OrderException;
 import com.itxindeshang.common.generator.SnowflakeIdGenerator;
 import com.itxindeshang.common.mapstruct.CopyMapper;
@@ -21,6 +20,7 @@ import com.itxindeshang.infrastructure.redis.connect.StringRedisConnector;
 import com.itxindeshang.infrastructure.redis.generator.RedisKeyGenerator;
 import com.itxindeshang.infrastructure.redis.properties.RedisCacheTtlProperties;
 import com.itxindeshang.job.delay.CancelUnpaidOrderDelayJob;
+import com.itxindeshang.mapper.CouponUserMapper;
 import com.itxindeshang.mapper.OrderMapper;
 import com.itxindeshang.mapper.ProductMapper;
 import com.itxindeshang.pojo.dto.OrderDTO;
@@ -29,7 +29,6 @@ import com.itxindeshang.pojo.entity.*;
 import com.itxindeshang.pojo.enums.OrderPageEnum;
 import com.itxindeshang.pojo.enums.OrderStatusEnum;
 import com.itxindeshang.pojo.enums.PayTypeEnum;
-import com.itxindeshang.pojo.vo.CouponUserVO;
 import com.itxindeshang.pojo.vo.OrderAddressVO;
 import com.itxindeshang.pojo.vo.OrderWithItemVO;
 import com.itxindeshang.pojo.vo.ProductSpecVO;
@@ -86,6 +85,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     @Resource
     private RedisCacheTtlProperties redisCacheTtlProperties;
 
+    @Resource
+    private CouponUserMapper couponUserMapper;
+
     /**
      * 新增订单
      */
@@ -117,8 +119,13 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
             // 6. 后置动作 (发消息)
             cancelUnpaidOrderDelayJob.setUnpaidOrderNoToDelayQueue(context.getOrder().getOrderNo());
             String userId = BaseContext.getUserId();
+            //删除用户订单缓存
             String userOrderKey = RedisKeyGenerator.userOrderKey(userId);
             StringRedisConnector.delete(userOrderKey);
+            //删除用户优惠券缓存myList
+
+            //删除商品detail缓存（前端怎么缓存的我们不关心，后端要即使清除）但这里需要上面的productIds，并且需要pipeline删除，代码复杂度又要抽方法
+
             return Result.success(resultVO);
 
         } catch (Exception e) {
@@ -620,6 +627,45 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         }
         return buildResult(userAllOrder, orderPageEnum);
     }
+
+    /**
+     * 取消订单数据库异步操作
+     * @param orderNo 订单号
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void syncCancel(String orderNo) {
+        log.info("收到订单取消消息，开始恢复库存，orderNo: {}", orderNo);
+
+        // 1. 查询订单下的所有商品
+        List<OrderItem> items = orderItemService.lambdaQuery().eq(OrderItem::getOrderNo,orderNo).list();
+        if (items == null || items.isEmpty()) {
+            log.warn("订单商品为空，orderNo: {}", orderNo);
+            return;
+        }
+        // 2. 逐个恢复库存
+        for (OrderItem item : items) {
+            productMapper.restoreProductAndSpecStock(
+                    item.getProductId(),
+                    item.getSpecId(),
+                    item.getQuantity()
+            );
+        }
+        //3.恢复coupon
+        //3.1查询是否使用coupon了
+        Order order = lambdaQuery().eq(Order::getOrderNo,orderNo).one();
+        if (order.getCouponUserId() == null) {
+            // 没有使用coupon，直接返回
+            return;
+        }
+        int count = couponUserMapper.updateCancel(orderNo);
+        if (count == 0) {
+            // 恢复coupon失败，回滚事务
+            throw new RuntimeException("恢复coupon失败，orderNo: " + orderNo);
+        }
+        log.info("恢复coupon成功，orderNo: {}", orderNo);
+    }
+
     /**
      * 构建订单页面返回方法
      * @param orders 订单集合
