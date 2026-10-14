@@ -3,6 +3,7 @@ package com.itxindeshang.common.exception;
 /**
  * 商品模块业务异常
  */
+@Deprecated
 public class ProductException extends BusinessException {
     public ProductException(String message) {
         super(message);

@@ -1,5 +1,6 @@
 package com.itxindeshang.common.exception;
 
+@Deprecated
 public class OrderException extends BusinessException {
     public OrderException(String message) {
         super(message);
