@@ -3,11 +3,9 @@ package com.itxindeshang.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.itxindeshang.common.constant.BucketConstant;
 import com.itxindeshang.common.constant.DataConstant;
-import com.itxindeshang.common.constant.MessageConstant;
-import com.itxindeshang.common.exception.ProductException;
+import com.itxindeshang.common.exception.BusinessException;
 import com.itxindeshang.common.mapstruct.CopyMapper;
 import com.itxindeshang.common.result.*;
 import com.itxindeshang.context.BaseContext;
@@ -36,8 +34,6 @@ import com.itxindeshang.util.JacksonUtils;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.client.producer.SendCallback;
-import org.apache.rocketmq.client.producer.SendResult;
 import org.redisson.api.RBucket;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
@@ -120,24 +116,27 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         List<ProductImage> images =productDTO.getImageUrls();
         List<ProductSpec> specList = productDTO.getSpecList();
         if (CollectionUtils.isEmpty(images) || CollectionUtils.isEmpty(specList)) {
-            throw new ProductException(MessageConstant.PRODUCT_IMAGE_OR_SPEC_EMPTY);
+//            throw new ProductException(MessageConstant.PRODUCT_IMAGE_OR_SPEC_EMPTY);
+            throw new BusinessException(ResultCode.PRODUCT_IMAGE_OR_SPEC_EMPTY.getCode(), ResultCode.PRODUCT_IMAGE_OR_SPEC_EMPTY.getMessage());
         }
         if (category == null) {
-            throw new ProductException(MessageConstant.PRODUCT_CATEGORY_INVALID);
+            throw new BusinessException(ResultCode.CATEGORY_NOT_FOUND.getCode(), ResultCode.CATEGORY_NOT_FOUND.getMessage());
         }
         Long categoryParentId = category.getParentId();
         //商品不得出现在第一级分类
         //TODO:这是二级分类下才能这样，后续考虑增加分级代码无法复用，考虑优化
         if (DataConstant.ZERO_LONG.equals(categoryParentId)) {
             //TODO:事务只认异常，这里要抛异常
-            throw new ProductException(MessageConstant.SQL_MESSAGE_SAVE_ERROR);
+            //业务异常，商品不得出现在第一级分类
+            throw new BusinessException(ResultCode.PRODUCT_CATEGORY_INVALID.getCode(), ResultCode.PRODUCT_CATEGORY_INVALID.getMessage());
         }
         product.setStatus(CommonStatus.INACTIVE);
         product.setViewCount(DataConstant.ZERO_LONG);
         product.setSalesCount(DataConstant.ZERO_LONG);
         boolean isSuccess = save(product);
         if (!isSuccess) {
-            throw new ProductException(MessageConstant.SQL_MESSAGE_SAVE_ERROR);
+            //业务异常，商品新增失败
+            throw new BusinessException(ResultCode.DB_SAVE_FAILED.getCode(), ResultCode.DB_SAVE_FAILED.getMessage());
         }
         Long productId = product.getId();
         images.forEach(image -> {
@@ -150,11 +149,13 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         });
         isSuccess = productSpecService.saveBatch(specList);
         if (!isSuccess) {
-            throw new ProductException(MessageConstant.SQL_MESSAGE_SAVE_ERROR);
+//            throw new ProductException(MessageConstant.SQL_MESSAGE_SAVE_ERROR);
+            throw new BusinessException(ResultCode.DB_SAVE_FAILED.getCode(), ResultCode.DB_SAVE_FAILED.getMessage());
         }
         isSuccess = productImageService.saveBatch(images);
         if (!isSuccess) {
-            throw new ProductException(MessageConstant.SQL_MESSAGE_SAVE_ERROR);
+//            throw new ProductException(MessageConstant.SQL_MESSAGE_SAVE_ERROR);
+            throw new BusinessException(ResultCode.DB_SAVE_FAILED.getCode(), ResultCode.DB_SAVE_FAILED.getMessage());
         }
         lambdaUpdate()
                 .eq(Product::getId, productId)
@@ -176,7 +177,6 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
      */
     @Override
     public Result<CursorCommonResult> getCategoryProductList(CursorCommonEntity cursorCommonEntity, Long categoryId,boolean isFirstCategoryId) {
-        //TODO: 确保查询categoryId是二级分类
         //在值相同时确保不重复
         Long sortId = cursorCommonEntity.getSortId();
         String sortType = cursorCommonEntity.getSortType();
@@ -224,7 +224,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     @Override
     public Result getProductDetail(Long productId,boolean isLogin) {
         if (!bloomFilterUtils.contains(productId)) {
-            return Result.error(MessageConstant.PRODUCT_NOT_FOUND);
+//            return Result.error(MessageConstant.PRODUCT_NOT_FOUND);
+            throw new BusinessException(ResultCode.PRODUCT_NOT_FOUND.getCode(), ResultCode.PRODUCT_NOT_FOUND.getMessage());
         }
         //TODO:这里要增加浏览量的，redis储存加异步增加
         //方案：uv:product:{id}:{今天日期} {userId},ttl 7天吗，还要考虑异步存硬件如clickHouse，看来得后续rocketmq补充功能了,那现在就先在第一次查出redis的情况下先存sql
@@ -283,13 +284,15 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
                         resultProduct = JacksonUtils.fromMap(retryMap, Product.class);
                     } else {
                         // 如果休眠后依然没缓存，说明对方查库也失败了，直接返回错误
-                        return Result.error(MessageConstant.DATA_ERROR);
+//                        return Result.error(MessageConstant.DATA_ERROR);
+                        throw ResultCode.PRODUCT_NOT_FOUND.exception();
                     }
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 //常量
-                throw new RuntimeException(MessageConstant.LOCK_ERROR, e);
+//                throw new RuntimeException(MessageConstant.LOCK_ERROR, e);
+                throw new BusinessException(ResultCode.LOCK_ERROR.getCode(), ResultCode.LOCK_ERROR.getMessage(), ResultCode.LOCK_ERROR.getDetail(), e);
             } finally {
                 // 【核心】：安全释放锁，无论中间发生了什么，这里一定会执行
                 if (lock.isHeldByCurrentThread()) {
@@ -359,7 +362,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             }
             return Result.success(resultProduct);
         } else {
-            return Result.error(MessageConstant.DATA_ERROR);
+//            return Result.error(MessageConstant.DATA_ERROR);
+            throw ResultCode.PRODUCT_NOT_FOUND.exception();
         }
     }
 
@@ -377,7 +381,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
                 .set(Product::getStatus, CommonStatus.INACTIVE.getNumber())
                 .update();
         if (!isSuccess) {
-            return Result.error(MessageConstant.DATA_ERROR);
+//            return Result.error(MessageConstant.DATA_ERROR);
+            throw new BusinessException(ResultCode.DB_SAVE_FAILED.getCode(), ResultCode.DB_SAVE_FAILED.getMessage(), ResultCode.DB_SAVE_FAILED.getDetail());
         }
         String productDetailKey = RedisKeyGenerator.productDetail(productId);
         RedisConnector.delete(productDetailKey);
@@ -399,7 +404,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
                 .set(Product::getStatus, CommonStatus.ACTIVE.getNumber())
                 .update();
         if (!isSuccess) {
-            return Result.error(MessageConstant.DATA_ERROR);
+//            return Result.error(MessageConstant.DATA_ERROR);
+            throw new BusinessException(ResultCode.DB_SAVE_FAILED.getCode(), ResultCode.DB_SAVE_FAILED.getMessage(), ResultCode.DB_SAVE_FAILED.getDetail());
         }
         //这里差消息异步发送更新es的status
         mqProducerUtils.sendProductUpdateStatus(productId,CommonStatus.ACTIVE);
@@ -414,7 +420,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     public Result updateProduct(ProductUpdateDTO productUpdateDTO) {
         Product existProduct = this.getById(productUpdateDTO.getId());
         if (existProduct == null) {
-            throw new ProductException(MessageConstant.PRODUCT_NOT_FOUND);
+//            throw new ProductException(MessageConstant.PRODUCT_NOT_FOUND);
+            throw ResultCode.PRODUCT_NOT_FOUND.exception();
         }
         Product updateProduct = copyMapper.productUpdateDTOToProduct(productUpdateDTO);
         Long productId =updateProduct.getId();
@@ -422,7 +429,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         List<ProductSpec> specList = productUpdateDTO.getSpecList();
         boolean isSuccess = updateById(updateProduct);
         if (!isSuccess) {
-            throw new ProductException(MessageConstant.SQL_MESSAGE_SAVE_ERROR);
+            throw new BusinessException(ResultCode.DB_SAVE_FAILED.getCode(), ResultCode.DB_SAVE_FAILED.getMessage(), ResultCode.DB_SAVE_FAILED.getDetail());
         }
         if (!CollectionUtils.isEmpty(imageUrls)) {
             productImageMapper.delete(new LambdaQueryWrapper<ProductImage>()
@@ -433,7 +440,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             });
             isSuccess = productImageService.saveBatch(imageUrls);
             if (!isSuccess) {
-                throw new ProductException(MessageConstant.SQL_MESSAGE_SAVE_ERROR);
+//                throw new ProductException(MessageConstant.SQL_MESSAGE_SAVE_ERROR);
+                throw new BusinessException(ResultCode.DB_SAVE_FAILED.getCode(), ResultCode.DB_SAVE_FAILED.getMessage(), ResultCode.DB_SAVE_FAILED.getDetail());
             }
         }
         if (!CollectionUtils.isEmpty(specList)) {
@@ -445,7 +453,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             });
             isSuccess = productSpecService.saveBatch(specList);
             if (!isSuccess) {
-                throw new ProductException(MessageConstant.SQL_MESSAGE_SAVE_ERROR);
+//                throw new ProductException(MessageConstant.SQL_MESSAGE_SAVE_ERROR);
+                throw new BusinessException(ResultCode.DB_SAVE_FAILED.getCode(), ResultCode.DB_SAVE_FAILED.getMessage(), ResultCode.DB_SAVE_FAILED.getDetail());
             }
             lambdaUpdate()
                     .eq(Product::getId,productId)
@@ -480,7 +489,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     @Override
     public Result<List<SimpleProductVO>> getHotProduct(Integer limit) {
         if (limit > redisCacheCountProperties.getHotProductCacheSize()) {
-            throw new RuntimeException(MessageConstant.EXCEED_MAX_HOT_PRODUCT_LIMIT);
+//            throw new RuntimeException(MessageConstant.EXCEED_MAX_HOT_PRODUCT_LIMIT);
+            throw new BusinessException(ResultCode.HOT_PRODUCT_LIMIT_EXCEEDED.getCode(), ResultCode.HOT_PRODUCT_LIMIT_EXCEEDED.getMessage());
         }
         //从redis里取出热门商品及其id
         List<ProductDocument> hotProductList = getHotProductList();
@@ -517,7 +527,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     public Result<?> getProductSpecPrice(Long productId, Long specId) {
         //布隆过滤器防止缓存穿透
         if (!bloomFilterUtils.contains(productId)) {
-            return Result.error(MessageConstant.DATA_ERROR);
+//            return Result.error(MessageConstant.DATA_ERROR);
+            throw ResultCode.PRODUCT_NOT_FOUND.exception();
         }
         String key = RedisKeyGenerator.productDetail(productId);
         Product product = RedisConnector.getHashObject(key, Product.class);
@@ -533,7 +544,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             productSpecList = product.getSpecList();
         }
         if (CollectionUtils.isEmpty(productSpecList)) {
-            return Result.error(MessageConstant.DATA_ERROR);
+//            return Result.error(MessageConstant.DATA_ERROR);
+            throw ResultCode.PRODUCT_NOT_FOUND.exception();
         }
         //初始化返回结果
         ProductSpec resultProductSpec = null;
@@ -546,7 +558,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         //判断是否存在这个规格
         if (Objects.isNull(resultProductSpec)) {
             //商品与规格有改动
-            return Result.error(MessageConstant.DATA_ERROR);
+//            return Result.error(MessageConstant.DATA_ERROR);
+            throw ResultCode.PRODUCT_NOT_FOUND.exception();
         }
         //处理为VO
         ProductSpecVO productSpecVO = copyMapper.productSpecToProductSpecVO(resultProductSpec);

@@ -113,6 +113,7 @@ public enum ResultCode {
     DB_SAVE_FAILED(8001, "数据保存失败，请稍后重试", "INSERT/UPDATE 影响行数=0"),
     /** 带子节点的分类不能删：明确告诉用户原因 */
     DB_DELETE_FAILED(8002, "数据删除失败：该分类下有子分类，请先删除子分类后再试", ""),
+    DATA_ALREADY_EXISTS(8003, "数据已存在，请检查后重试", "唯一约束冲突/DuplicateKeyException"),
 
     // ==================== 9xxx 系统兜底 ====================
     /** 系统级技术故障：前端只看到"稍后重试"，detail 里保留具体异常（ES挂了？Redis挂了？） */

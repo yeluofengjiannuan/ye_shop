@@ -7,6 +7,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -95,5 +96,12 @@ public class GlobalExceptionHandler {
     public Result<?> handleException(Exception e) {
         log.error("未捕获异常", e);
         return Result.error(HttpResponseStatus.INTERNAL_SERVER_ERROR.code(), ResultCode.SYSTEM_ERROR.getCode(), ResultCode.SYSTEM_ERROR.getMessage());
+    }
+
+    @ExceptionHandler(DuplicateKeyException.class)
+    public Result<?> handleDuplicateKeyException(DuplicateKeyException e) {
+        log.warn("数据重复: {}", e.getMessage());
+        // 用新建的 ResultCode.DATA_ALREADY_EXISTS
+        return Result.error(HttpResponseStatus.OK.code(), ResultCode.DATA_ALREADY_EXISTS.getCode(), ResultCode.DATA_ALREADY_EXISTS.getMessage());
     }
 }
