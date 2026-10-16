@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.itxindeshang.common.constant.MessageConstant;
 import com.itxindeshang.common.mapstruct.CopyMapper;
 import com.itxindeshang.common.result.Result;
+import com.itxindeshang.common.result.ResultCode;
 import com.itxindeshang.context.BaseContext;
 import com.itxindeshang.mapper.AddressMapper;
 import com.itxindeshang.pojo.dto.AddressDTO;
@@ -39,7 +40,8 @@ public class AddressServiceImpl extends ServiceImpl<AddressMapper, Address> impl
         addressService.makeOnlyHaveOneDefault(addressDTO, userId);
         boolean isSuccess = save(address);
         if (!isSuccess) {
-            return Result.error(MessageConstant.SQL_MESSAGE_SAVE_ERROR);
+//            return Result.error(MessageConstant.SQL_MESSAGE_SAVE_ERROR);
+            throw ResultCode.DB_SAVE_FAILED.exception();
         }
         return Result.success(address);
     }
@@ -87,7 +89,9 @@ public class AddressServiceImpl extends ServiceImpl<AddressMapper, Address> impl
                 .one();
 
         if (address == null) {
-            return Result.error(MessageConstant.DATA_ERROR);
+//            return Result.error(MessageConstant.DATA_ERROR);
+            throw ResultCode.ADDRESS_NOT_FOUND.exception();
+
         }
 
         //如果删除的是默认地址最新的一条非默认地址提升为默认
@@ -110,7 +114,8 @@ public class AddressServiceImpl extends ServiceImpl<AddressMapper, Address> impl
         //物理删除当前地址
         boolean isSuccess = removeById(addressId);
         if (!isSuccess) {
-            throw new RuntimeException(MessageConstant.SQL_MESSAGE_DELETE_ERROR);
+//            throw new RuntimeException(MessageConstant.SQL_MESSAGE_DELETE_ERROR);
+            throw ResultCode.DB_DELETE_FAILED.exception();
         }
 
         return Result.success();
@@ -147,7 +152,8 @@ public class AddressServiceImpl extends ServiceImpl<AddressMapper, Address> impl
                 .one();
 
         if (existingAddress == null) {
-            return Result.error(MessageConstant.DATA_ERROR);
+//            return Result.error(MessageConstant.DATA_ERROR);
+            throw ResultCode.ADDRESS_NOT_FOUND.exception();
         }
 
         // API防篡改
@@ -171,7 +177,8 @@ public class AddressServiceImpl extends ServiceImpl<AddressMapper, Address> impl
 
         boolean isSuccess = updateById(address);
         if (!isSuccess) {
-            throw new RuntimeException(MessageConstant.SQL_MESSAGE_SAVE_ERROR);
+//            throw new RuntimeException(MessageConstant.SQL_MESSAGE_SAVE_ERROR);
+            throw ResultCode.DB_SAVE_FAILED.exception();
         }
 
         return Result.success();
