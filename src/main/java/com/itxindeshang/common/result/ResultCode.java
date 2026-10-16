@@ -61,6 +61,7 @@ public enum ResultCode {
     CART_CLEAR_DB_FAILED(4001, "清空购物车失败，请稍后重试", "数据库删除失败"),
     CART_UPDATE_QTY_FAILED(4002, "修改数量失败，请稍后重试", "数据库更新失败"),
     CART_DELETE_BATCH_FAILED(4003, "批量删除失败，请稍后重试", "数据库批量删除失败"),
+    CART_ITEM_NOT_FOUND(4004, "购物车项不存在，请刷新后重试", "cartId 不存在或越权"),
 
     // ==================== 5xxx 优惠券/活动 ====================
     // --- 通用业务错误 ---

@@ -3,9 +3,10 @@ package com.itxindeshang.service.impl;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.itxindeshang.common.constant.DataConstant;
-import com.itxindeshang.common.constant.MessageConstant;
+import com.itxindeshang.common.exception.BusinessException;
 import com.itxindeshang.common.mapstruct.CopyMapper;
 import com.itxindeshang.common.result.Result;
+import com.itxindeshang.common.result.ResultCode;
 import com.itxindeshang.context.BaseContext;
 import com.itxindeshang.infrastructure.redis.connect.StringRedisConnector;
 import com.itxindeshang.infrastructure.redis.generator.RedisKeyGenerator;
@@ -103,13 +104,18 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
                     StringRedisConnector.opsForHash().increment(cartKey, cartHashKey,quantity);
                     return Result.success();
                 } else {
-                    return Result.error(MessageConstant.SYSTEM_BUSY);
+                    throw ResultCode.CART_ITEM_NOT_FOUND.exception();
                 }
 
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException(MessageConstant.LOCK_ERROR, e);
+            throw new BusinessException(
+                    ResultCode.LOCK_ERROR.getCode(),
+                    ResultCode.LOCK_ERROR.getMessage(),
+                    ResultCode.LOCK_ERROR.getDetail(),
+                    e
+            );
         }
         //异步存库
     }
@@ -125,7 +131,8 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
                                         Integer quantity, String cartKey, String cartHashKey) {
         Integer productStatus = cartMapper.checkProductStatus(productId, specId);
         if (productStatus == null || productStatus != 1) {
-            return Result.error(MessageConstant.DATA_ERROR);//TODO:商品不存在
+            throw ResultCode.PRODUCT_NOT_FOUND.exception();
+
         }
         // 第一次加购时，这里会返回 null，我们把它当作 0 处理，完美兼容！
         Integer dbQuantity = cartMapper.getCartQuantityOnly(userId, productId, specId);
@@ -216,7 +223,7 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
                 .eq(Cart::getUserId, userId)
                 .remove();
         if (!isRemoved) {
-            throw new RuntimeException(MessageConstant.CART_CLEAR_DB_FAILED);
+            throw ResultCode.CART_CLEAR_DB_FAILED.exception();
         }
         return Result.success();
     }
@@ -235,14 +242,14 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
                 .eq(Cart::getUserId, userId) // 【核心安全】：防止越权修改别人的购物车
                 .one();
         if (cart == null) {
-            return Result.error(MessageConstant.DATA_ERROR);
+            throw ResultCode.CART_ITEM_NOT_FOUND.exception();
         }
         boolean updated = lambdaUpdate()
                 .eq(Cart::getId, cartId)
                 .set(Cart::getQuantity, newQuantity)
                 .update();
         if (!updated) {
-            throw new RuntimeException(MessageConstant.CART_UPDATE_QTY_FAILED);
+            throw ResultCode.DB_SAVE_FAILED.exception();
         }
         String cartKey = RedisKeyGenerator.cartKey(userId);
         String cartHashKey = RedisKeyGenerator.cartHashKey(cart.getProductId(), cart.getSpecId());
@@ -280,7 +287,7 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
                 .in(Cart::getId, validCartIds)
                 .remove();
         if (!isRemoved) {
-            throw new RuntimeException(MessageConstant.CART_DELETE_BATCH_FAILED);
+            throw ResultCode.CART_DELETE_BATCH_FAILED.exception();
         }
         return Result.success();
     }
