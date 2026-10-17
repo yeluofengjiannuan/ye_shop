@@ -7,11 +7,11 @@ import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.itxindeshang.common.constant.MessageConstant;
-import com.itxindeshang.common.exception.CouponException;
+import com.itxindeshang.common.exception.BusinessException;
 import com.itxindeshang.common.generator.SnowflakeIdGenerator;
 import com.itxindeshang.common.mapstruct.CopyMapper;
 import com.itxindeshang.common.result.Result;
+import com.itxindeshang.common.result.ResultCode;
 import com.itxindeshang.context.BaseContext;
 import com.itxindeshang.infrastructure.mq.utils.MqProducerUtils;
 import com.itxindeshang.infrastructure.redis.connect.RedisConnector;
@@ -143,33 +143,33 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
     private void validateCouponCreateDTO(CouponCreateDTO dto) {
         // 1. 分发时间非空校验
         if (dto.getReleaseTime() == null) {
-            throw new CouponException(MessageConstant.RELEASE_TIME_REQUIRED);
+            throw ResultCode.RELEASE_TIME_INVALID.exception();
         }
         // 2. 分发时间不能早于当前时间（防止发“过期”的券）
         if (dto.getReleaseTime().isBefore(LocalDateTime.now())) {
-            throw new CouponException(MessageConstant.RELEASE_TIME_BEFORE_NOW);
+            throw ResultCode.RELEASE_TIME_BEFORE_VALIDITY.exception();
         }
         // validMode = 1（固定时间）：validStart 和 validEnd 必填
         if (dto.getValidMode() == 1) {
             if (dto.getValidStart() == null || dto.getValidEnd() == null) {
-                throw new CouponException(MessageConstant.VALID_MODE_FIXED_TIME_REQUIRED);
+                throw ResultCode.COUPON_FIXED_TIME_REQUIRED.exception();
             }
             if (dto.getValidEnd().isBefore(dto.getValidStart())) {
-                throw new CouponException(MessageConstant.VALID_END_BEFORE_START);
+                throw ResultCode.COUPON_TIME_RANGE_INVALID.exception();
             }
         }
 
         // validMode = 2（领券后N天）：receiveValidDays 必填
         if (dto.getValidMode() == 2) {
             if (dto.getValidDays() == null || dto.getValidDays() <= 0) {
-                throw new CouponException(MessageConstant.VALID_MODE_RECEIVE_DAYS_REQUIRED);
+                throw ResultCode.COUPON_RECEIVE_DAYS_INVALID.exception();
             }
         }
 
         // type = 1（满减）：conditionAmount 必填且大于0
         if (dto.getType() == 1) {
             if (dto.getConditionAmount() == null || dto.getConditionAmount().compareTo(BigDecimal.ZERO) <= 0) {
-                throw new CouponException(MessageConstant.FULL_REDUCTION_CONDITION_REQUIRED);
+                throw ResultCode.COUPON_FULL_THRESHOLD_INVALID.exception();
             }
         }
 
@@ -179,14 +179,14 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
 
                     || dto.getDiscountAmount().compareTo(BigDecimal.ZERO) <= 0
                     || dto.getDiscountAmount().compareTo(BigDecimal.ONE) >= 0) {
-                throw new CouponException(MessageConstant.DISCOUNT_RATE_INVALID);
+                throw ResultCode.COUPON_DISCOUNT_RATE_INVALID.exception();
             }
         }
 
         // type = 3（无门槛）：discountAmount 必须大于0
         if (dto.getType() == 3) {
             if (dto.getDiscountAmount() == null || dto.getDiscountAmount().compareTo(BigDecimal.ZERO) <= 0) {
-                throw new CouponException(MessageConstant.NO_THRESHOLD_DISCOUNT_REQUIRED);
+                throw ResultCode.COUPON_NO_THRESHOLD_AMOUNT_INVALID.exception();
             }
         }
     }
@@ -199,13 +199,13 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
         if (dto.getUseScope() == 2) {
             List<Long> productIds = dto.getProductIds();
             if (productIds == null || productIds.isEmpty()) {
-                throw new CouponException("指定商品时，商品列表不能为空");
+                throw ResultCode.COUPON_SPECIFIED_GOODS_EMPTY.exception();
             }
 
             // 校验商品是否存在
             int existCount = productService.countByIds(productIds);
             if (existCount != productIds.size()) {
-                throw new CouponException("部分商品ID不存在，请检查后重试");
+                throw ResultCode.COUPON_GOODS_NOT_EXIST.exception();
             }
 
             // 批量插入关联表
@@ -222,13 +222,13 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
         else if (dto.getUseScope() == 3) {
             List<Long> categoryIds = dto.getCategoryIds();
             if (categoryIds == null || categoryIds.isEmpty()) {
-                throw new CouponException("指定分类时，分类列表不能为空");
+                throw ResultCode.COUPON_SPECIFIED_CATEGORY_EMPTY.exception();
             }
 
             // 校验分类是否存在
             int existCount = categoryService.countByIds(categoryIds);
             if (existCount != categoryIds.size()) {
-                throw new CouponException("部分分类ID不存在，请检查后重试");
+                throw ResultCode.COUPON_CATEGORY_NOT_EXIST.exception();
             }
 
             // 批量插入关联表
@@ -265,30 +265,31 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
         // 1. 查询券模板
         Coupon coupon = couponMapper.selectById(couponId);
         if (coupon == null) {
-            return Result.error(MessageConstant.COUPON_NOT_FOUND);
+            throw ResultCode.COUPON_NOT_FOUND.exception();
         }
         //判断权限
         if (coupon.getUserLimitType() != 1) {
             if (!userInfo.getLevel().equals(coupon.getUserLimitType())) {
-                return Result.error(MessageConstant.USER_LEVEL_ERROR);
+                throw ResultCode.USER_LEVEL_NOT_MATCH.exception();
             }
         }
         if (!quantity.equals(coupon.getPerUserQty())) {
-            return Result.error(MessageConstant.COUPON_USER_RECEIVE_ERROR);
+            throw ResultCode.COUPON_RECEIVE_LIMIT_EXCEEDED.exception();
         }
         if (coupon.getStatus() != CouponStatusEnum.ON_SHELF) {
-            return Result.error(MessageConstant.COUPON_NO_SHELF);
+            throw ResultCode.COUPON_NOT_ON_SHELF.exception();
         }
         LocalDateTime now = LocalDateTime.now();
         if (coupon.getValidStart() != null && now.isBefore(coupon.getValidStart())) {
-            return Result.error(MessageConstant.ACTIVITY_NOT_START);
+            throw ResultCode.ACTIVITY_NOT_STARTED.exception();
         }
         if (coupon.getValidEnd() != null && now.isAfter(coupon.getValidEnd())) {
-            return Result.error(MessageConstant.ACTIVITY_END);
+            throw ResultCode.ACTIVITY_ENDED.exception();
         }
         Integer perUserQty = coupon.getPerUserQty();
         if (perUserQty == null || perUserQty <= 0) {
-            return Result.error(MessageConstant.COUPON_ERROR);
+            //TODO：这里要考虑下是否下面这个适合
+            throw ResultCode.COUPON_CONFIG_ERROR.exception();
         }
         // 2. 构建 Redis Key
         String stockKey = RedisKeyGenerator.couponStockKey(couponId);
@@ -317,15 +318,15 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
         }
         //出现返回值是null是redis挂了，要怎么考虑吗，会抛异常吧？
         if (luaResult == -1L) {
-            return Result.error(MessageConstant.DATA_ERROR);
+            throw ResultCode.COUPON_CONFIG_ERROR.exception();
         }
 
         if (luaResult == 0L) {
-            return Result.error(MessageConstant.COUPON_STOCK_NULL);
+            throw ResultCode.COUPON_STOCK_INSUFFICIENT.exception();
         }
 
         if (luaResult == -2L) {
-            return Result.error(MessageConstant.COUPON_HOLD);
+            throw ResultCode.COUPON_ALREADY_RECEIVED.exception();
         }
 
         // 3. Redis扣减成功，异步落库
@@ -344,7 +345,7 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
         } catch (Exception e) {
             log.error("发送领券MQ消息失败, couponId={}, userId={}", couponId, userId, e);
             rollbackRedis(couponId, Long.valueOf(userId), perUserQty);
-            return Result.error(MessageConstant.SYSTEM_BUSY);
+            throw ResultCode.SYSTEM_BUSY.exception();
         }
         // 4. 返回处理中的领券记录
         CouponUser couponUser = CouponUser.builder()
@@ -392,7 +393,7 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
                     .eq(Coupon::getId, couponId)
                     .update();
             if (!isSuccess) {
-                throw new CouponException(MessageConstant.SYNC_SAVE_ERROR);
+                throw ResultCode.ASYNC_SAVE_FAILED.exception();
             }
             Coupon coupon = getById(couponId);
             LocalDateTime expireTime;
@@ -459,7 +460,7 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
         try {
             boolean locked = lock.tryLock(3, 10, TimeUnit.SECONDS);
             if (!locked) {
-                return Result.error(MessageConstant.SYSTEM_BUSY);
+                throw ResultCode.SYSTEM_BUSY.exception();
             }
 
             Long count = couponUserMapper.selectCount(
@@ -469,12 +470,12 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
             );
 
             if (count != null && count > 0) {
-                return Result.error(MessageConstant.COUPON_HOLD);
+                throw ResultCode.COUPON_ALREADY_RECEIVED.exception();
             }
             //更新coupon表的stock
             int rows = couponMapper.deductStock(couponId, perUserQty);
             if (rows == 0) {
-                return Result.error(MessageConstant.COUPON_STOCK_NULL);
+                throw ResultCode.COUPON_STOCK_INSUFFICIENT.exception();
             }
 
             CouponUser couponUser = CouponUser.builder()
@@ -500,7 +501,7 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             log.error("DB降级领取被中断, couponId={}, userId={}", couponId, userId, e);
-            return Result.error(MessageConstant.SYSTEM_BUSY);
+            throw ResultCode.SYSTEM_BUSY.exception();
         } finally {
             if (lock.isHeldByCurrentThread()) {
                 lock.unlock();
@@ -758,15 +759,15 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
     public Result<?> onShlef(Long couponId) {
         Coupon coupon = getById(couponId);
         if (coupon == null) {
-            return Result.error(MessageConstant.COUPON_NOT_FOUND);
+            throw ResultCode.COUPON_NOT_FOUND.exception();
         }
 
         if (coupon.getValidEnd()!=null &&coupon.getValidEnd().isBefore(LocalDateTime.now())) {
             lambdaUpdate().set(Coupon::getStatus,3).eq(Coupon::getId,couponId).update();
-            return Result.error(MessageConstant.ACTIVITY_EXPIRED);
+            throw ResultCode.COUPON_EXPIRED.exception();
         }
         if (CouponStatusEnum.VOIDED.equals(coupon.getStatus())) {
-            return Result.error(MessageConstant.ACTIVITY_VOIDED);
+            throw ResultCode.ACTIVITY_VOIDED.exception();
         }
         //数据库操作：上架
         if (coupon.getValidEnd() == null || coupon.getValidEnd().isAfter(LocalDateTime.now())) {
@@ -803,7 +804,7 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
             }
             return Result.success();
         }
-        return Result.error(MessageConstant.ON_SHELF_ERROR);
+        throw ResultCode.ON_SHELF_FAILED.exception();
     }
 
     /**
@@ -815,10 +816,10 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
     public Result<?> offShelf(Long couponId) {
         Coupon coupon = getById(couponId);
         if (coupon == null) {
-            return Result.error(MessageConstant.COUPON_NOT_FOUND);
+            throw ResultCode.COUPON_NOT_FOUND.exception();
         }
         if (!CouponStatusEnum.ON_SHELF.equals(coupon.getStatus())) {
-            return Result.error(MessageConstant.ACTIVITY_OFF_SHELF);
+            throw ResultCode.ACTIVITY_OFF_SHELF.exception();
         }
         if (coupon.getValidMode() == 2) {
             //领取后n天过期的优惠券下架直接作废
@@ -945,12 +946,17 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
                     if (!CollectionUtils.isEmpty(coupons)) {
                         return Result.success(coupons);
                     } else {
-                        return Result.error(MessageConstant.DATA_ERROR);
+                        throw ResultCode.COUPON_CONFIG_ERROR.exception();
                     }
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                throw new RuntimeException(MessageConstant.LOCK_ERROR, e);
+                throw new BusinessException(
+                        ResultCode.LOCK_ERROR.getCode(),
+                        ResultCode.LOCK_ERROR.getMessage(),
+                        ResultCode.LOCK_ERROR.getDetail(),
+                        e  // 保留中断堆栈
+                );
             }finally {
                 // 【核心】：安全释放锁，无论中间发生了什么，这里一定会执行
                 if (lock.isHeldByCurrentThread()) {

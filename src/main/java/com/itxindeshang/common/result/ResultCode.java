@@ -76,6 +76,7 @@ public enum ResultCode {
     COUPON_STATUS_ERROR(5007, "优惠券状态异常，请稍后再试", "状态锁定失败"),
     COUPON_RECEIVE_LIMIT_EXCEEDED(5008, "您已达到该优惠券领取上限", ""),
     COUPON_NOT_ON_SHELF(5009, "优惠券未上架，无法领取", ""),
+
     // --- 活动状态 ---
     ACTIVITY_NOT_STARTED(5010, "活动尚未开始，请耐心等待", ""),
     ACTIVITY_ENDED(5011, "活动已结束，无法参与", ""),
