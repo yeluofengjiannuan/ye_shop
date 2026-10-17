@@ -7,11 +7,11 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.itxindeshang.common.constant.MessageConstant;
-import com.itxindeshang.common.exception.OrderException;
+import com.itxindeshang.common.exception.BusinessException;
 import com.itxindeshang.common.generator.SnowflakeIdGenerator;
 import com.itxindeshang.common.mapstruct.CopyMapper;
 import com.itxindeshang.common.result.Result;
+import com.itxindeshang.common.result.ResultCode;
 import com.itxindeshang.common.result.StockCheckResult;
 import com.itxindeshang.context.BaseContext;
 import com.itxindeshang.infrastructure.mq.utils.MqProducerUtils;
@@ -96,19 +96,20 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     public Result<OrderWithItemVO> insertOrder(OrderDTO orderDTO) {
         // 1. 基础校验
         if (Objects.isNull(orderDTO.getOrderItems()) || orderDTO.getOrderItems().isEmpty()) {
-            return Result.error(MessageConstant.DATA_ERROR);
+//            return Result.error(MessageConstant.DATA_ERROR);
+            throw ResultCode.ORDER_ITEMS_EMPTY.exception();
         }
 
         try {
             // 2. 准备数据 (查地址、查券、查商品)
             OrderContext context = prepareOrderData(orderDTO);
-            if (!context.isSuccess()) return Result.error(context.getMsg());
+//            if (!context.isSuccess()) return Result.error(context.getMsg());
 
             // 3. 校验并锁定资源 (扣库存、锁优惠券)
-            String errorMsg = validateAndLockResources(context);
-            if (errorMsg != null) {
-                return Result.error(errorMsg);
-            }
+            validateAndLockResources(context);
+//            if (errorMsg != null) {
+//                return Result.error(errorMsg);
+//            }
 
             // 4. 计算金额 (总价、分摊优惠)
             calculateOrderAmount(context);
@@ -144,10 +145,12 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     public Result<?> cancelOrder(String orderNo, String cancelReason) {
         Order order = lambdaQuery().eq(Order::getOrderNo, orderNo).one();
         if (order == null) {
-            return Result.error(MessageConstant.ORDER_NOT_EXIST);
+//            return Result.error(MessageConstant.ORDER_NOT_EXIST);
+            throw ResultCode.ORDER_NOT_EXIST.exception();
         }
         if (order.getStatus() != OrderStatusEnum.PENDING_PAYMENT) {
-            return Result.error(MessageConstant.ORDER_NOT_CANCEL);
+//            return Result.error(MessageConstant.ORDER_NOT_CANCEL);
+            throw ResultCode.ORDER_STATUS_INVALID.exception();
             //TODO:这里只要处于支付状态后就先不得取消，更多逻辑后续优化，因为现在支付模块没处理好，后续回调和退款再优化
         }
         //这里加什么判断啊
@@ -168,7 +171,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         //1.判断是否存在
         Order order = lambdaQuery().eq(Order::getOrderNo, orderNo).one();
         if (order == null) {
-            throw new OrderException(MessageConstant.ORDER_NOT_EXIST);
+//            throw new OrderException(MessageConstant.ORDER_NOT_EXIST);
+            throw ResultCode.ORDER_NOT_EXIST.exception();
         }
         //订单状态一点要改为支付成功就是待确认
         // 3. 记录支付时间
@@ -184,7 +188,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
             // 这里直接返回成功，告诉支付平台“我收到了”，避免平台一直重试回调
             log.warn("订单 {} 状态非未支付，可能是重复回调，当前状态：{}", orderNo, order.getStatus());
             //TODO：这里失败的话金额会返回（这里因为没有开始接触微信支付接口先保持现在的逻辑
-            return Result.success(MessageConstant.ORDER_PROCESSED);
+            return Result.success("订单已处理，无需重复支付");
         }
         cancelUnpaidOrderDelayJob.setPaidOrderNoToCancelDelayQueue(orderNo);
         //这里异步究竟要干嘛？后面再考虑吧TODO：1.发消息更新coupon的locked为used
@@ -204,7 +208,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     public Result<OrderWithItemVO> getOrderDesc(String orderNo) {
         Order order = lambdaQuery().eq(Order::getOrderNo, orderNo).one();
         if (order == null) {
-            return Result.error(MessageConstant.ORDER_NOT_EXIST);
+//            return Result.error(MessageConstant.ORDER_NOT_EXIST);
+            throw ResultCode.ORDER_NOT_EXIST.exception();
         }
         List<OrderItem> items = orderItemService.lambdaQuery().eq(OrderItem::getOrderNo, orderNo).list();
         order.setOrderItems(items);
@@ -226,8 +231,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         // 1.1 处理地址
         Address address = addressService.getById(orderDTO.getAddressId());
         if (address == null || !address.getUserId().equals(Long.valueOf(BaseContext.getUserId()))) {
-            context.setFail("收货地址无效或不属于当前用户");
-            return context;
+            throw ResultCode.ORDER_ADDRESS_INVALID.exception();
         }
         context.setAddress(address);
 
@@ -241,20 +245,24 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
             // 1.2 处理优惠券
             CouponUser couponUser = couponUserService.getById(orderDTO.getCouponUserId());
             if (couponUser == null) {
-                context.setFail("优惠券不存在");
-                return context;
+//                context.setFail("优惠券不存在");
+//                return context;
+                throw ResultCode.ORDER_COUPON_NOT_FOUND.exception();
             }
             //FIXME:这里和后续可以看情况，看看这个refund的数量究竟要怎么处理，refund就在这里先作为冗余字段，后续可以使用，现在退款先返回数量给unused吧
             if (couponUser.getUnusedCount().equals(0)) {
-                context.setFail("优惠券不可用");
-                return context;
+//                context.setFail("优惠券不可用");
+//                return context;
+                throw ResultCode.ORDER_COUPON_UNAVAILABLE.exception();
             }
             // 这里只做读取，不做更新（更新放到 validate 阶段）
             context.setCouponUser(couponUser);
             Coupon coupon = RedisConnector.getHashObject(RedisKeyGenerator.couponDetail(couponUser.getCouponId()), Coupon.class);
             if (coupon == null) {
-                context.setFail("优惠券信息异常");
-                return context;
+//                context.setFail("优惠券信息异常");
+//                return context;
+                throw ResultCode.ORDER_COUPON_UNAVAILABLE.exception();
+
             }
             context.setCoupon(coupon);
             //1.4校验优惠券是否能覆盖商品
@@ -275,8 +283,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
                         .filter(relatedProductIds::contains)
                         .collect(Collectors.toSet());
                 if (applicableIds.isEmpty()) {
-                    context.setFail("订单商品不符合优惠券使用范围");
-                    return context;
+//                    context.setFail("订单商品不符合优惠券使用范围");
+//                    return context;
+                    throw ResultCode.ORDER_COUPON_SCOPE_MISMATCH.exception();
                 }
                 context.setApplicableProductIds(applicableIds);
             } else {
@@ -286,8 +295,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
                         .stream().collect(Collectors.toSet());
 
                 if (applicableIds.isEmpty()) {
-                    context.setFail("订单商品不符合优惠券使用范围");
-                    return context;
+                    throw ResultCode.ORDER_COUPON_SCOPE_MISMATCH.exception();
                 }
                 context.setApplicableProductIds(applicableIds);
             }
@@ -299,32 +307,42 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     /**
      * 2. 校验并锁定资源：校验商品状态、扣库存、锁优惠券
      */
-    private String validateAndLockResources(OrderContext context) {
+    private void validateAndLockResources(OrderContext context) {
         OrderDTO orderDTO = context.getOrderDTO();
-        List<String> errors = new ArrayList<>();
 
         // 2.1 校验商品信息 (价格、库存、上下架、归属)
         for (OrderItemDTO item : orderDTO.getOrderItems()) {
             ProductSpecVO dbSpec = context.getSpecMap().get(item.getSpecId());
             if (dbSpec == null) {
-                //FIXME：好歹加哪个商品无效吧
-                errors.add("商品规格无效");
-                continue;
+                throw ResultCode.ORDER_PRODUCT_SPEC_INVALID.exception(
+                        "规格ID " + item.getSpecId() + " 不存在",
+                        "specId=" + item.getSpecId()
+                );
             }
             if (!dbSpec.getProductId().equals(item.getProductId())) {
                 //FIXME:同理
-                errors.add(MessageConstant.PRODUCT_SPEC_NOT_MATCH_PRODUCT);
+//                throw new BusinessException(ResultCode.ORDER_PRODUCT_SPEC_NOT_MATCH.getCode(), ResultCode.ORDER_PRODUCT_SPEC_NOT_MATCH.getMessage()+dbSpec.getProductName());
+                throw ResultCode.ORDER_PRODUCT_SPEC_NOT_MATCH.exception(
+                        "商品【" + dbSpec.getProductName() + "】规格不匹配",
+                        "productId=" + item.getProductId() + ", specId=" + item.getSpecId() + " 不属于该商品"
+                );
             } else if (dbSpec.getProductStatus() != 1) {
-                errors.add("商品【" + dbSpec.getProductName() + "】已下架");
+//                throw new BusinessException(ResultCode.PRODUCT_OFF_SHELF.getCode(), ResultCode.PRODUCT_OFF_SHELF.getMessage()+dbSpec.getProductName());
+                throw ResultCode.PRODUCT_OFF_SHELF.exception(
+                        "商品【" + dbSpec.getProductName() + "】已下架",
+                        "productId=" + item.getProductId() + " status != 1"
+                );
             } else if (dbSpec.getPrice().compareTo(item.getPrice()) != 0) {
-                errors.add("商品【" + dbSpec.getProductName() + "】价格已变动");
+//                throw new BusinessException(ResultCode.ORDER_PRODUCT_PRICE_CHANGED.getCode(), ResultCode.ORDER_PRODUCT_PRICE_CHANGED.getMessage()+dbSpec.getProductName());
+                throw ResultCode.ORDER_PRODUCT_PRICE_CHANGED.exception(
+                        "商品【" + dbSpec.getProductName() + "】价格已变动",
+                        "productId=" + item.getProductId() + " 前端价=" + item.getPrice() + " 后端价=" + dbSpec.getPrice()
+                );
             } else if (dbSpec.getStock() < item.getQuantity()) {
-                errors.add("商品【" + dbSpec.getProductName() + "】库存不足");
+                throw ResultCode.STOCK_NOT_ENOUGH.exception();
             }
         }
-        if (!errors.isEmpty()) {
-            return String.join("；", errors);
-        }
+
 
 
         // 2.2 扣减库存 (原子操作)
@@ -333,7 +351,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
             List<String> messages = stockResult.getInsufficientItems().stream()
                     .map(i ->i.getProductName()+ "商品库存不足")
                     .toList();
-            return String.join("；", messages);
+            throw ResultCode.STOCK_NOT_ENOUGH.exception(
+                    String.join("；", messages),
+                    "扣库存失败，specIds=" + stockResult.getInsufficientItems().stream().map(StockInsufficientItem::getSpecId).toList()
+            );
         }
         //扣除product的库存
 
@@ -342,7 +363,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
 
         if (cu !=null) {
             if (cu.getUnusedCount() <= 0) {
-                return MessageConstant.COUPON_EXPIRED;
+                throw ResultCode.ORDER_COUPON_UNAVAILABLE.exception();
             }
             boolean updated = couponUserService.lambdaUpdate()
                     .setSql("unused_count = unused_count - 1")
@@ -350,11 +371,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
                     .eq(CouponUser::getId, cu.getId())
                     .update();
             if (!updated) {
-                return MessageConstant.COUPON_STATUS_ERROR;
+                throw ResultCode.ORDER_COUPON_LOCK_FAILED.exception();
             }
         }
-
-        return null;
     }
 
     /**
@@ -647,7 +666,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         int stockRows = productMapper.batchRestoreStockByOrderNo(orderNo);
         if (stockRows == 0) {
             log.error("取消订单：恢复库存影响 0 行，orderNo: {}", orderNo);
-            throw new OrderException("恢复库存失败"+orderNo);  // 触发 RocketMQ 重试
+//            throw new OrderException("恢复库存失败"+orderNo);  // 触发 RocketMQ 重试
+            throw ResultCode.STOCK_RESTORE_FAILED.exception();
         }
 
         // 3. 恢复优惠券（用了券才执行）
@@ -655,7 +675,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
             int couponRows = couponUserMapper.updateCancel(orderNo);
             if (couponRows == 0) {
                 log.error("取消订单：优惠券恢复影响 0 行，orderNo: {}", orderNo);
-                throw new OrderException("恢复优惠券失败"+orderNo);  // 触发 RocketMQ 重试
+//                throw new OrderException("恢复优惠券失败"+orderNo);  // 触发 RocketMQ 重试
+                throw ResultCode.COUPON_RESTORE_FAILED.exception();
             }
             log.info("恢复优惠券成功，orderNo: {}", orderNo);
         }

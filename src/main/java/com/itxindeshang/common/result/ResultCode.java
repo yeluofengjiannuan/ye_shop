@@ -56,6 +56,8 @@ public enum ResultCode {
     PRODUCT_SPEC_NOT_MATCH(3006, "商品规格与商品不匹配，请检查后重试", ""),
     CATEGORY_PARENTID_FIXED(3007, "数据更新失败，分类父类ID不可修改", ""),
     HOT_PRODUCT_LIMIT_EXCEEDED(3008, "热门商品缓存数量超限，请联系管理员", ""),
+    PRODUCT_OFF_SHELF(3009, "商品已下架，无法购买", "product status != 1"),
+    STOCK_NOT_ENOUGH(3010, "商品库存不足，请稍后再试", "deductProductAndSpecStock 影响行数=0"),
 
     // ==================== 4xxx 购物车 ====================
     CART_CLEAR_DB_FAILED(4001, "清空购物车失败，请稍后重试", "数据库删除失败"),
@@ -109,6 +111,15 @@ public enum ResultCode {
     COUPON_RESTORE_FAILED(6005, "优惠券恢复失败，请联系管理员", "数据库/Redis 恢复失败"),
     COUPON_CONFIRM_FAILED(6006, "优惠券核销失败，请联系管理员", "数据库核销失败"),
     SALE_COUNT_UPDATE_FAILED(6007, "销量更新失败，请联系管理员", "数据库更新失败"),
+    ORDER_ITEMS_EMPTY(6008, "请选择购买商品", "orderItems 为空"),
+    ORDER_ADDRESS_INVALID(6009, "收货地址无效", "地址不存在或越权"),
+    ORDER_COUPON_NOT_FOUND(6010, "优惠券不存在", "couponUserId 无效"),
+    ORDER_COUPON_UNAVAILABLE(6011, "优惠券不可用", "unusedCount=0 或已过期"),
+    ORDER_COUPON_SCOPE_MISMATCH(6012, "订单商品不在优惠券使用范围内", ""),
+    ORDER_PRODUCT_SPEC_INVALID(6013, "商品规格无效", "specId 不存在"),
+    ORDER_PRODUCT_SPEC_NOT_MATCH(6014, "商品规格与商品不匹配", ""),
+    ORDER_PRODUCT_PRICE_CHANGED(6015, "商品价格已变动，请刷新页面", ""),
+    ORDER_COUPON_LOCK_FAILED(6016, "优惠券锁定失败，请稍后重试", "update coupon_user 影响行数=0"),
 
     // ==================== 7xxx 用户/地址 ====================
     ADDRESS_NOT_FOUND(7001, "收货地址不存在，请检查后重试", "addressId 不存在或越权"),
