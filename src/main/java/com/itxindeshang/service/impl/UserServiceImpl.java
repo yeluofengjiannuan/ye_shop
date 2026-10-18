@@ -1,9 +1,9 @@
 package com.itxindeshang.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.itxindeshang.common.constant.MessageConstant;
 import com.itxindeshang.common.mapstruct.CopyMapper;
 import com.itxindeshang.common.result.Result;
+import com.itxindeshang.common.result.ResultCode;
 import com.itxindeshang.context.BaseContext;
 import com.itxindeshang.mapper.UserMapper;
 import com.itxindeshang.pojo.dto.UserDetailDTO;
@@ -39,7 +39,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, SysUser> implements
         boolean isSuccess = lambdaUpdate().eq(SysUser::getId, userId).set(SysUser::getNickname, userDetailDTO.getNickname())
                 .set(SysUser::getAvatar, userDetailDTO.getAvatar()).set(SysUser::getPhone, userDetailDTO.getPhone()).update();
         if (!isSuccess) {
-            return Result.error(MessageConstant.SQL_MESSAGE_SAVE_ERROR);
+            throw ResultCode.DB_SAVE_FAILED.exception();
         }
         return Result.success();
     }
