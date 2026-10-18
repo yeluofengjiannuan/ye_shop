@@ -1,7 +1,6 @@
 package com.itxindeshang.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.itxindeshang.common.constant.MessageConstant;
 import com.itxindeshang.common.mapstruct.CopyMapper;
 import com.itxindeshang.common.result.Result;
 import com.itxindeshang.common.result.ResultCode;
