@@ -2,9 +2,9 @@ package com.itxindeshang.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.itxindeshang.common.constant.MessageConstant;
 import com.itxindeshang.common.mapstruct.CopyMapper;
 import com.itxindeshang.common.result.Result;
+import com.itxindeshang.common.result.ResultCode;
 import com.itxindeshang.common.result.SimpleCursorCommonEntity;
 import com.itxindeshang.common.result.SimpleCursorCommonResult;
 import com.itxindeshang.context.BaseContext;
@@ -46,7 +46,7 @@ public class CollectionServiceImpl  extends ServiceImpl<CollectionMapper, Produc
         ProductCollection productCollection = ProductCollection.builder().productId(productId).userId(Long.valueOf(userId)).build();
         boolean isSuccess = save(productCollection);
         if (!isSuccess) {
-            return Result.error(MessageConstant.TOM_CAT_ERROR);
+            throw ResultCode.DB_SAVE_FAILED.exception();
         }
         RedisConnector.delete(collectionKey);
 
@@ -63,7 +63,7 @@ public class CollectionServiceImpl  extends ServiceImpl<CollectionMapper, Produc
         LambdaQueryWrapper<ProductCollection> lambdaQueryWrapper = new LambdaQueryWrapper<ProductCollection>().eq(ProductCollection::getUserId, userId).in(ProductCollection::getProductId, productIds);
         boolean isSuccess = remove(lambdaQueryWrapper);
         if (!isSuccess) {
-            return Result.error(MessageConstant.TOM_CAT_ERROR);
+            throw ResultCode.DB_DELETE_FAILED.exception();
         }
         //删除缓存
         RedisConnector.executePipelined(new SessionCallback<>() {
