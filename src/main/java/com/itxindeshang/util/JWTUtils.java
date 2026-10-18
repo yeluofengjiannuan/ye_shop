@@ -1,6 +1,6 @@
 package com.itxindeshang.util;
 
-import com.itxindeshang.common.constant.MessageConstant;
+import com.itxindeshang.common.result.ResultCode;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -44,7 +44,7 @@ public class JWTUtils {
      */
     public static Claims parseJWT(String secretKey, String token) {
         if (Objects.isNull(token) || !token.startsWith(JWT_PREFIX)) {
-            throw new SignatureException(MessageConstant.TOKEN_INVALID);
+            throw new SignatureException(ResultCode.TOKEN_SIGNATURE_ERROR.getMessage());
         }
         String cleanToken = token.substring(JWT_PREFIX.length()).replaceAll("\\s", "");// 去掉 Bearer和空格
         SecretKey key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));

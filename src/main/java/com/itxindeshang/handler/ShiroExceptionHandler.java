@@ -1,7 +1,8 @@
 package com.itxindeshang.handler;
 
-import com.itxindeshang.common.constant.MessageConstant;
 import com.itxindeshang.common.result.Result;
+import com.itxindeshang.common.result.ResultCode;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.authz.UnauthenticatedException;
@@ -21,15 +22,14 @@ public class ShiroExceptionHandler {
     @ExceptionHandler(UnauthenticatedException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public Result<Object> handleUnauthenticatedException(Exception e) {
-        return Result.error(MessageConstant.USER_NOT_LOGIN);
-
+        return Result.error(HttpResponseStatus.UNAUTHORIZED.code(), ResultCode.NO_TOKEN.getCode(), ResultCode.NO_TOKEN.getMessage());
     }
 
     // 权限不足
     @ExceptionHandler(UnauthorizedException.class)
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public Result<Object> handleUnauthorizedException(Exception e){
-        return Result.error(MessageConstant.PERMISSION_DENIED);
+        return Result.error(HttpResponseStatus.FORBIDDEN.code(), ResultCode.PERMISSION_DENIED.getCode(), ResultCode.PERMISSION_DENIED.getMessage());
     }
 
     
@@ -37,7 +37,7 @@ public class ShiroExceptionHandler {
     @ExceptionHandler(AuthenticationException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Result<Object> handleShiroException(Exception e){
-        return Result.error(MessageConstant.SYSTEM_ERROR);
+        return Result.error(HttpResponseStatus.INTERNAL_SERVER_ERROR.code(), ResultCode.SYSTEM_ERROR.getCode(), ResultCode.SYSTEM_ERROR.getMessage());
 
     }
 

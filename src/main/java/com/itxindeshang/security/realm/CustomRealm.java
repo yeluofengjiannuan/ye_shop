@@ -1,9 +1,9 @@
 package com.itxindeshang.security.realm;
 
 import com.itxindeshang.common.constant.JWTTokenClaimsConstant;
-import com.itxindeshang.common.constant.MessageConstant;
 import com.itxindeshang.common.exception.InvalidCredentialsException;
 import com.itxindeshang.common.mapstruct.CopyMapper;
+import com.itxindeshang.common.result.ResultCode;
 import com.itxindeshang.infrastructure.redis.connect.RedisConnector;
 import com.itxindeshang.infrastructure.redis.generator.RedisKeyGenerator;
 import com.itxindeshang.pojo.UserInfo;
@@ -51,7 +51,7 @@ public class CustomRealm extends AuthorizingRealm {
         SysUser user =(SysUser) principals.getPrimaryPrincipal();
         if (Objects.isNull(user)) {
             log.error("授权失败：用户不存在");
-            throw new UnknownAccountException(MessageConstant.ACCOUNT_NOT_FOUND);
+            throw new UnknownAccountException(ResultCode.ACCOUNT_NOT_FOUND.getMessage());
         }
         // 提取角色和权限
         Set<String> roleNames = user.getSysRoleList().stream()
@@ -81,7 +81,7 @@ public class CustomRealm extends AuthorizingRealm {
         String jwtUserId = claims.get(JWTTokenClaimsConstant.SYS_USER_ID).toString();
         if (!userId.equals(jwtUserId)) {
             log.error("Token篡改：传入userId={}，JWT解析userId={}", userId, jwtUserId);
-              throw new InvalidCredentialsException(MessageConstant.TOKEN_INVALID);
+              throw new InvalidCredentialsException(ResultCode.TOKEN_SIGNATURE_ERROR.getMessage());
         }
         //查询用户角色和权限，这里是查redis的，如果redis没有就查sql更新redis
         // 查询用户（带角色和权限）
@@ -89,7 +89,7 @@ public class CustomRealm extends AuthorizingRealm {
         if (userMap.isEmpty()) {
             SysUser user = loginServiceImpl.getSysUserByUserIdWithRolesAndPermissions(Long.valueOf(userId));
             if (Objects.isNull(user)){
-                throw new UnknownAccountException(MessageConstant.USER_NOT_LOGIN);
+                throw new UnknownAccountException(ResultCode.NO_TOKEN.getMessage());
             }
             UserInfo userInfo = copyMapper.sysUserToUserInfo(user);
             //TODO:这里就是没有检验导致出问题
@@ -99,7 +99,7 @@ public class CustomRealm extends AuthorizingRealm {
         }
         //TODO:为什么查到能出现isNotEnable
         if (!userMap.get(SysUser.Fields.isEnable).equals(CommonStatus.ACTIVE.getNumber())) {
-            throw new DisabledAccountException(MessageConstant.ACCOUNT_LOCKED);
+            throw new DisabledAccountException(ResultCode.ACCOUNT_LOCKED.getMessage());
 
         }
 
@@ -109,7 +109,7 @@ public class CustomRealm extends AuthorizingRealm {
 
         //TODO：这里的校验其实是有问题，出现空集合还能通过，后续记得更改，现在可以通过方便测试而已
         if (Objects.isNull(sysRoleList) || Objects.isNull(sysPermissionList) || Objects.isNull(userInfo)) {
-            throw new UnknownAccountException(MessageConstant.USER_NOT_LOGIN);
+            throw new UnknownAccountException(ResultCode.NO_TOKEN.getMessage());
 
         }
         SysUser user = SysUser.builder()

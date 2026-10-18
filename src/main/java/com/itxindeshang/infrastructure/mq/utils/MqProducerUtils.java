@@ -1,6 +1,5 @@
 package com.itxindeshang.infrastructure.mq.utils;
 
-import com.itxindeshang.common.constant.MessageConstant;
 import com.itxindeshang.infrastructure.es.document.ProductDocument;
 import com.itxindeshang.infrastructure.mq.constant.order.MqOrderConstant;
 import com.itxindeshang.infrastructure.mq.constant.product.MqProductConstant;
