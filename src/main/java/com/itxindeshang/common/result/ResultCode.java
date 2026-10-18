@@ -58,6 +58,7 @@ public enum ResultCode {
     HOT_PRODUCT_LIMIT_EXCEEDED(3008, "热门商品缓存数量超限，请联系管理员", ""),
     PRODUCT_OFF_SHELF(3009, "商品已下架，无法购买", "product status != 1"),
     STOCK_NOT_ENOUGH(3010, "商品库存不足，请稍后再试", "deductProductAndSpecStock 影响行数=0"),
+    CATEGORY_HAS_CHILD(3011, "该分类下存在子分类，无法删除", "delete category 时 children count > 0"),
 
     // ==================== 4xxx 购物车 ====================
     CART_CLEAR_DB_FAILED(4001, "清空购物车失败，请稍后重试", "数据库删除失败"),
@@ -128,7 +129,7 @@ public enum ResultCode {
     /** 通用数据库保存失败：给前端友好提示，detail 里保留技术信息 */
     DB_SAVE_FAILED(8001, "数据保存失败，请稍后重试", "INSERT/UPDATE 影响行数=0"),
     /** 带子节点的分类不能删：明确告诉用户原因 */
-    DB_DELETE_FAILED(8002, "数据删除失败：该分类下有子分类，请先删除子分类后再试", ""),
+    DB_DELETE_FAILED(8002, "数据删除失败，请稍后重试", ""),
     DATA_ALREADY_EXISTS(8003, "数据已存在，请检查后重试", "唯一约束冲突/DuplicateKeyException"),
 
     // ==================== 9xxx 系统兜底 ====================

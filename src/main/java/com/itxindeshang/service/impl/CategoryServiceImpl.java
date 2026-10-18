@@ -5,9 +5,9 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.itxindeshang.common.constant.CaffeineConstant;
 import com.itxindeshang.common.constant.DataConstant;
-import com.itxindeshang.common.constant.MessageConstant;
 import com.itxindeshang.common.mapstruct.CopyMapper;
 import com.itxindeshang.common.result.Result;
+import com.itxindeshang.common.result.ResultCode;
 import com.itxindeshang.infrastructure.redis.connect.RedisConnector;
 import com.itxindeshang.infrastructure.redis.generator.RedisKeyGenerator;
 import com.itxindeshang.mapper.CategoryMapper;
@@ -131,11 +131,11 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
 //        Long id = Long.parseLong(categoryId);
         Category category = getCategoryChildren(categoryId);
         if (!CollectionUtils.isEmpty(category.getChildren())) {
-            return Result.error(MessageConstant.SQL_MESSAGE_DELETE_ERROR);
+            throw ResultCode.CATEGORY_HAS_CHILD.exception();
         }
         boolean isSuccess = removeById(categoryId);
         if (!isSuccess) {
-            return Result.error(MessageConstant.SQL_MESSAGE_DELETE_ERROR);
+            throw ResultCode.DB_DELETE_FAILED.exception();
         }
         invalidateCache();
         return Result.success();
@@ -152,23 +152,23 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         if (categoryCache == null) {
             Category selectedCategory = getById(categoryId);
             if (!category.getParentId().equals(selectedCategory.getParentId())) {
-                return Result.error(MessageConstant.SQL_MESSAGE_UPDATE_PARENTID_ERROR);
+                throw ResultCode.CATEGORY_PARENTID_FIXED.exception();
             }
             category.setId(categoryId);
             boolean isSuccess = updateById(category);
             if (!isSuccess) {
-                return Result.error(MessageConstant.SQL_MESSAGE_SAVE_ERROR);
+                throw ResultCode.DB_SAVE_FAILED.exception();
             }
             invalidateCache();
             return Result.success(category);
         }
         if (!category.getParentId().equals(categoryCache.getParentId())) {
-            return Result.error(MessageConstant.SQL_MESSAGE_UPDATE_PARENTID_ERROR);
+            throw ResultCode.CATEGORY_PARENTID_FIXED.exception();
         }
         category.setId(categoryId);
         boolean isSuccess = updateById(category);
         if (!isSuccess) {
-            return Result.error(MessageConstant.SQL_MESSAGE_SAVE_ERROR);
+            throw ResultCode.DB_SAVE_FAILED.exception();
         }
         invalidateCache();
         return Result.success(category);
@@ -225,7 +225,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         Category category = copyMapper.categoryDTOToCategory(categoryDTO);
         boolean isSuccess = save(category);
         if (!isSuccess) {
-            return Result.error(MessageConstant.SQL_MESSAGE_SAVE_ERROR);
+            throw ResultCode.DB_SAVE_FAILED.exception();
         }
         //清除树缓存
         invalidateCache();
