@@ -1,9 +1,9 @@
 package com.itxindeshang.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.itxindeshang.common.constant.MessageConstant;
 import com.itxindeshang.common.mapstruct.CopyMapper;
 import com.itxindeshang.common.result.Result;
+import com.itxindeshang.common.result.ResultCode;
 import com.itxindeshang.infrastructure.redis.connect.RedisConnector;
 import com.itxindeshang.infrastructure.redis.generator.RedisKeyGenerator;
 import com.itxindeshang.mapper.BannerMapper;
@@ -66,7 +66,7 @@ public class BannerServiceImpl extends ServiceImpl<BannerMapper, Banner> impleme
         banner.setId(bannerId);
         boolean isSuccess = updateById(banner);
         if (!isSuccess) {
-            return Result.error(MessageConstant.DATA_ERROR);
+            throw ResultCode.DB_SAVE_FAILED.exception();
         }
         //清理缓存
         String bannerKey = RedisKeyGenerator.banner();
@@ -81,7 +81,7 @@ public class BannerServiceImpl extends ServiceImpl<BannerMapper, Banner> impleme
     public Result<?> deleteBanner(Long id) {
         boolean isSuccess = removeById(id);
         if (!isSuccess) {
-            return Result.error(MessageConstant.DATA_ERROR);
+            throw ResultCode.DB_DELETE_FAILED.exception();
         }
         //清理缓存
         String bannerKey = RedisKeyGenerator.banner();
@@ -97,16 +97,16 @@ public class BannerServiceImpl extends ServiceImpl<BannerMapper, Banner> impleme
     public Result<?> onShelfBanner(Long id) {
         Banner banner = getById(id);
         if (banner == null) {
-            return Result.error(MessageConstant.DATA_ERROR);
+            throw ResultCode.BANNER_NOT_FOUND.exception();
         }
         if (CommonStatus.INACTIVE != banner.getStatus()) {
-            return Result.error(MessageConstant.DATA_ERROR);
+            throw ResultCode.BANNER_NOT_FOUND.exception();
         }
         boolean isSuccess = lambdaUpdate().set(Banner::getStatus, CommonStatus.ACTIVE)
                 .eq(Banner::getId, id)
                 .update();
         if (!isSuccess) {
-            return Result.error(MessageConstant.DATA_ERROR);
+            throw ResultCode.DB_SAVE_FAILED.exception();
         }
         //清理缓存
         String bannerKey = RedisKeyGenerator.banner();
@@ -122,17 +122,17 @@ public class BannerServiceImpl extends ServiceImpl<BannerMapper, Banner> impleme
     public Result<?> offShelfBanner(Long id) {
         Banner banner = getById(id);
         if (banner == null) {
-            return Result.error(MessageConstant.DATA_ERROR);
+            throw ResultCode.BANNER_NOT_FOUND.exception();
         }
         if (CommonStatus.ACTIVE != banner.getStatus()) {
-            return Result.error(MessageConstant.DATA_ERROR);
+            throw ResultCode.BANNER_NOT_FOUND.exception();
         }
         //下架
         boolean isSuccess = lambdaUpdate().set(Banner::getStatus, CommonStatus.INACTIVE)
                 .eq(Banner::getId, id)
                 .update();
         if (!isSuccess) {
-            return Result.error(MessageConstant.DATA_ERROR);
+            throw ResultCode.DB_SAVE_FAILED.exception();
         }
         //清理缓存
         String bannerKey = RedisKeyGenerator.banner();
