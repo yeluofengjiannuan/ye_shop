@@ -2,7 +2,6 @@ package com.itxindeshang.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.itxindeshang.common.constant.JWTTokenClaimsConstant;
-import com.itxindeshang.common.constant.MessageConstant;
 import com.itxindeshang.common.mapstruct.CopyMapper;
 import com.itxindeshang.common.result.LoginInfo;
 import com.itxindeshang.common.result.Result;
@@ -50,10 +49,10 @@ public class LoginServiceImpl extends ServiceImpl<UserMapper, SysUser> implement
         String password = userDTO.getPassword();
         SysUser user = getSysUserByNameWithRolesAndPermissions(userDTO.getUsername());
         if (Objects.isNull(user)) {
-            return Result.error(MessageConstant.ACCOUNT_NOT_FOUND);
+            throw ResultCode.ACCOUNT_NOT_FOUND.exception();
         }
         if (!BCrypt.checkpw(password, user.getPassword())) {
-            return Result.error(MessageConstant.LOGIN_ERROR);
+            throw ResultCode.LOGIN_ERROR.exception();
         }
         UserInfo userInfo = copyMapper.sysUserToUserInfo(user);
         setUserInfoToRedis(user, userInfo);
@@ -67,7 +66,7 @@ public class LoginServiceImpl extends ServiceImpl<UserMapper, SysUser> implement
     public Result refreshToken(String refreshToken) {
         Map<String, Object> refreshTokenMap = RedisConnector.opsForHash().entries(RedisKeyGenerator.loginRefreshToken(refreshToken));
         if (refreshTokenMap.isEmpty()) {
-            return Result.error(ResultCode.REFRESH_TOKEN_EXPIRED.getCode(),MessageConstant.REFRESH_TOKEN_EXPIRED_ERROR);
+            throw ResultCode.REFRESH_TOKEN_EXPIRED.exception();
         }
         String accessTokenNew = JWTUtils.createJWT(jwtProperties.getUserSecretKey(), jwtProperties.getUserTtl(), refreshTokenMap);
         long userId = Long.parseLong(refreshTokenMap.get(JWTTokenClaimsConstant.SYS_USER_ID).toString());
@@ -94,7 +93,7 @@ public class LoginServiceImpl extends ServiceImpl<UserMapper, SysUser> implement
     public Result register(String username, String password, String phone) {
         SysUser user = lambdaQuery().eq(SysUser::getUsername, username).one();
         if (Objects.nonNull(user)) {
-            return Result.error(MessageConstant.USER_NAME_EXISTS);
+            throw ResultCode.USER_ALREADY_EXISTS.exception();
         }
 //        String nickname = NicknameGenerator.generateDefaultNickname();
         String nickname = username;
@@ -108,7 +107,8 @@ public class LoginServiceImpl extends ServiceImpl<UserMapper, SysUser> implement
         //mp 插入
         boolean isSuccess = save(userNew);
         if (!isSuccess) {
-            return Result.error(MessageConstant.SQL_MESSAGE_SAVE_ERROR);
+//            return Result.error(MessageConstant.SQL_MESSAGE_SAVE_ERROR);
+            throw ResultCode.DB_SAVE_FAILED.exception();
         }
         sysUserMapper.insertSysUserConnectSysRole(userNew.getId(), UserRoleEnum.ROLE_BUYER.getId());
         return Result.success();
